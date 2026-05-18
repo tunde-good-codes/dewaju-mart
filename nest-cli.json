@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "apps/Dewaju-mart/src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "assets": [
+      {
+        "include": "modules/email/templates/**/*",
+        "outDir": "dist/src",
+        "watchAssets": true
+      }
+    ],
+    "plugins": [
+      {
+        "name": "@nestjs/swagger",
+        "options": {
+          "classValidatorShim": true,
+          "dtoFileNameSuffix": [
+            ".dto.ts",
+            ".entity.ts"
+          ]
+        }
+      }
+    ],
+    "webpack": true,
+    "tsConfigPath": "apps/Dewaju-mart/tsconfig.app.json"
+  },
+  "monorepo": true,
+  "root": "apps/Dewaju-mart",
+  "paths": {
+    "@app/kafka": [
+      "libs/kafka/src"
+    ],
+    "@app/kafka/*": [
+      "libs/kafka/src/*"
+    ]
+  },
+  "projects": {
+    "Dewaju-mart": {
+      "type": "application",
+      "root": "apps/Dewaju-mart",
+      "entryFile": "main",
+      "sourceRoot": "apps/Dewaju-mart/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/Dewaju-mart/tsconfig.app.json"
+      }
+    },
+    "auth-service": {
+      "type": "application",
+      "root": "apps/auth-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/auth-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/auth-service/tsconfig.app.json"
+      }
+    },
+    "database": {
+      "type": "library",
+      "root": "libs/database",
+      "entryFile": "index",
+      "sourceRoot": "libs/database/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/database/tsconfig.lib.json"
+      }
+    },
+    "gateway": {
+      "type": "application",
+      "root": "apps/gateway",
+      "entryFile": "main",
+      "sourceRoot": "apps/gateway/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/gateway/tsconfig.app.json"
+      }
+    },
+    "kafka": {
+      "type": "library",
+      "root": "libs/kafka",
+      "entryFile": "index",
+      "sourceRoot": "libs/kafka/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/kafka/tsconfig.lib.json"
+      }
+    }
+  }
+}

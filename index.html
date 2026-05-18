@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </head>
+  <body>
+    <div
+      id="g_id_onload"
+      data-client_id="321136150522-vhb96o833uo0l5i6ammjad1ntou7c0ml.apps.googleusercontent.com"
+      data-callback="handleCredentialResponse"
+    ></div>
+
+    <div class="g_id_signin"></div>
+
+    <script>
+      function handleCredentialResponse(response) {
+        console.log("Google token:", response.credential);
+
+        fetch("http://localhost:3000/auth/google-authentication", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            token: response.credential
+          })
+        })
+          .then((res) => res.json())
+          .then((data) => console.log(data));
+      }
+    </script>
+  </body>
+</html>

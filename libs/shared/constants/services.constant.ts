@@ -1,0 +1,6 @@
+
+
+export const SERVICES_PORT ={
+    AUTH_SERVICE:3001,
+    GATEWAY_SERVICE:3000
+}
