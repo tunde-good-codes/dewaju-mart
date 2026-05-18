@@ -1,8 +1,7 @@
-
 services:
 
   postgres:
-    image: postgres:alpine  # Matched to your local cache to prevent heavy downloads
+    image: postgres:alpine
     container_name: dewaju-mart-postgres
     ports:
       - "5432:5432"
@@ -21,17 +20,17 @@ services:
       - app-network
 
   redis:
-    image: redis:alpine  # Matches your local Docker Desktop cache perfectly
+    image: redis:alpine
     container_name: dewaju-mart-redis
     ports:
-      - "6379:6379"      # Exposes Redis on the standard default port
+      - "6379:6379"
     volumes:
-      - redis_data:/data # Persists your cache/OTP data if the container restarts
+      - redis_data:/data
     networks:
       - app-network
 
   pgadmin:
-    image: dpage/pgadmin4:latest  # Forced to check local 'latest' cache tag
+    image: dpage/pgadmin4:latest
     container_name: dewaju-mart-pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
@@ -44,7 +43,7 @@ services:
       - app-network
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0  # Matches your local 7.5.0 image exactly
+    image: confluentinc/cp-zookeeper:7.5.0
     container_name: dewaju-mart-zookeeper
     ports:
       - "2181:2181"
@@ -55,7 +54,7 @@ services:
       - app-network
 
   kafka:
-    image: confluentinc/cp-kafka:7.5.0  # Matches your local 7.5.0 image exactly
+    image: confluentinc/cp-kafka:7.5.0
     container_name: dewaju-mart-kafka
     ports:
       - "9092:9092"
@@ -69,9 +68,28 @@ services:
     networks:
       - app-network
 
+  # ========== ADD MAILHOG HERE ==========
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: dewaju-mart-mailhog
+    ports:
+      - "1025:1025"  # SMTP port - configure your NestJS app to use this
+      - "8025:8025"  # Web UI - view captured emails at http://localhost:8025
+    networks:
+      - app-network
+    restart: unless-stopped
+    # Optional: Add healthcheck to ensure mailhog is ready
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8025/api/v2/messages"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
 volumes:
   postgres_data:
   redis_data:
 
 networks:
   app-network:
+    driver: bridge

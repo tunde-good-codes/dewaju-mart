@@ -5,10 +5,9 @@ import { HttpService } from "@nestjs/axios";
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private readonly authServiceUrl: `http://localhost:3001/api/v1/auth`,
-    private readonly httpService: HttpService
-  ) {}
+  private readonly authServiceUrl: `http://localhost:3001/api/v1/auth`;
+
+  constructor(private readonly httpService: HttpService) {}
 
   async registerUser(data: CreateUserDto) {
     const result = await firstValueFrom(
