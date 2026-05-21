@@ -16,10 +16,7 @@
         "name": "@nestjs/swagger",
         "options": {
           "classValidatorShim": true,
-          "dtoFileNameSuffix": [
-            ".dto.ts",
-            ".entity.ts"
-          ]
+          "dtoFileNameSuffix": [".dto.ts", ".entity.ts"]
         }
       }
     ],
@@ -29,12 +26,8 @@
   "monorepo": true,
   "root": "apps/Dewaju-mart",
   "paths": {
-    "@app/kafka": [
-      "libs/kafka/src"
-    ],
-    "@app/kafka/*": [
-      "libs/kafka/src/*"
-    ]
+    "@app/kafka": ["libs/kafka/src"],
+    "@app/kafka/*": ["libs/kafka/src/*"]
   },
   "projects": {
     "Dewaju-mart": {
@@ -82,13 +75,22 @@
         "tsConfigPath": "libs/kafka/tsconfig.lib.json"
       }
     },
+
     "notification-service": {
       "type": "application",
       "root": "apps/notification-service",
       "entryFile": "main",
       "sourceRoot": "apps/notification-service/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/notification-service/tsconfig.app.json"
+        "tsConfigPath": "apps/notification-service/tsconfig.app.json",    "webpack": false,
+
+        "assets": [
+          {
+            "include": "templates/**/*",
+            "outDir": "dist/apps/notification-service/src",
+            "watchAssets": true
+          }
+        ]
       }
     }
   }

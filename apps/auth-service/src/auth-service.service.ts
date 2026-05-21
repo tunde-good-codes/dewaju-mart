@@ -67,32 +67,35 @@ export class AuthService implements OnModuleInit {
       );
     }
 
-    await this.sendOtpToEmail(createUserDto.email, otp);
+    this.kafkaClient.emit(KAFKA_TOPICS.REGISTER_USER_OTP, {
+      email: registrationPayload.userData.email,
+      otp: registrationPayload.otp,
+    });
     return { message: "Verification OTP sent successfully!" };
   }
 
   async verifyOtpRegisterUser(verifyOtpDto: VerifyOtpDto) {
     const redisKey = `user-reg:${verifyOtpDto.email}`;
-
-    const emailCheck = await this.userRepository.findOne({
-      where: { email: verifyOtpDto.email },
-    });
-    if (emailCheck) {
-      throw new ConflictException("A user with this email already exists");
-    }
-
     const registerUserData = await this.cacheManager.get<{
       otp: string;
       userData: CreateUserDto;
     }>(redisKey);
 
     if (!registerUserData?.otp) {
-      throw new NotFoundException("Otp not found or expired");
+      throw new NotFoundException("OTP not found or has expired");
     }
 
     if (registerUserData.otp !== verifyOtpDto.otp) {
-      throw new ConflictException("Otp Mismatched or invalid!");
+      throw new ConflictException("OTP mismatched or invalid!");
     }
+
+    const emailCheck = await this.userRepository.findOne({
+      where: { email: verifyOtpDto.email },
+    });
+
+    if (emailCheck) {
+    throw new ConflictException("A user with this email already exists");
+  }
 
     const { firstName, email, lastName, password } = registerUserData.userData;
 
@@ -144,10 +147,6 @@ export class AuthService implements OnModuleInit {
     return "Hello World!";
   }
 
-  private async sendOtpToEmail(email: string, otp: string) {
-    this.logger.log(`An OTP [${otp}] has been sent to [${email}]`);
-  }
-
   private async generateTokens(userId: string, email: string, role: string) {
     const payload = { sub: userId, email, role };
     const refreshTokenKey = randomBytes(16).toString("hex");
@@ -184,7 +183,7 @@ export class AuthService implements OnModuleInit {
         firstName: googleUserData.firstName,
         lastName: googleUserData.lastName,
         imageUrl: googleUserData.imageUrl,
-        provider:AuthProvider.GOOGLE
+        provider: AuthProvider.GOOGLE,
       });
 
       await this.userRepository.save(user);
@@ -228,5 +227,4 @@ export class AuthService implements OnModuleInit {
   private async updateUserRefreshToken(userId: string, refreshToken: string) {
     await this.userRepository.update({ id: userId }, { refreshToken });
   }
-
 }

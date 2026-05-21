@@ -8,41 +8,46 @@ import { join } from "path";
 import { KafkaModule } from "@app/kafka";
 import { GoogleWelcomeEmailProvider } from "./providers/google-email-provider";
 import { OtpEmailProvider } from "./providers/otp-email-provider";
+import { UserRegisteredProvider } from "./providers/user-registered-email-provider";
+
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: `apps/notification-service/.env.${process.env.NODE_ENV || "development"}`,
+      envFilePath: `${process.cwd()}/apps/notification-service/.env.${process.env.NODE_ENV || 'development'}`,
     }),
-    MailerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
 
-      useFactory: (configService: ConfigService) => ({
-        transport: {
-          host: configService.getOrThrow("SMTP_HOST"),
-          port: configService.getOrThrow("SMTP_PORT"),
-          ignoreTLS: configService.getOrThrow("SMTP_IGNORE_TLS") === "true",
-          secure: configService.getOrThrow("SMTP_SECURE") === "true",
-        },
-        auth: {
-          user: configService.getOrThrow("SMTP_USER", ""),
-          pass: configService.getOrThrow("SMTP_PASS", ""),
-        },
-        defaults: {
-          from: configService.get(
-            "SMTP_FROM",
-            ' "Dewaju Mart" noreply@dewaju-mart.com'
-          ),
-        },
-        template: {
-          dir: join(__dirname, "templates"),
-          adapter: new EjsAdapter(),
-          options: {
-            strict: true,
+    MailerModule.forRootAsync({
+      imports: [ConfigModule], 
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+
+        return {
+          transport: {
+            host: configService.getOrThrow<string>("SMTP_HOST"),
+            port: Number(configService.getOrThrow("SMTP_PORT")),
+            ignoreTLS: configService.get("SMTP_IGNORE_TLS") === "true",
+            secure: configService.get("SMTP_SECURE") === "true",
+            auth: configService.get("SMTP_USER") 
+              ? {
+                  user: configService.get("SMTP_USER"),
+                  pass: configService.get("SMTP_PASS"),
+                }
+              : undefined, // Strips out auth completely for Mailhog since it doesn't need it
           },
-        },
-      }),
+          defaults: {
+            from: configService.get("SMTP_FROM", '"Dewaju Mart" <noreply@dewaju-mart.com>'),
+          },
+          template: {
+            dir: join(process.cwd(), "dist/apps/notification-service/src/templates"),
+            adapter: new EjsAdapter(),
+            options: {
+              strict: false,
+            },
+          },
+        };
+      },
     }),
 
     KafkaModule.register("notification-service-group"),
@@ -51,7 +56,8 @@ import { OtpEmailProvider } from "./providers/otp-email-provider";
   providers: [
     NotificationService,
     GoogleWelcomeEmailProvider,
-    OtpEmailProvider,
+    OtpEmailProvider,UserRegisteredProvider
   ],
 })
+
 export class NotificationServiceModule {}

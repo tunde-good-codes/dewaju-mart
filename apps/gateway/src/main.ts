@@ -8,6 +8,7 @@ async function bootstrap() {
 
   const logger = new Logger("Gateway service logs")
   const app = await NestFactory.create(GatewayModule);
+  app.setGlobalPrefix("api/v1");
 
   app.enableShutdownHooks()
   await app.listen(SERVICES_PORT.GATEWAY_SERVICE ?? 3000);

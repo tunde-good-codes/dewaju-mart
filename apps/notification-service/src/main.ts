@@ -11,19 +11,20 @@ async function bootstrap() {
   const logger = new Logger("notification server running");
   const app = await NestFactory.create(NotificationServiceModule);
   app.enableShutdownHooks();
-  app.startAllMicroservices();
 
   app.connectMicroservice({
     transport: Transport.KAFKA,
     options: {
       client: {
-        broker: KAFKA_BROKER,
+      brokers: ["localhost:9092"],
       },
       consumer: {
         groupId: "notification-service-group",
       },
     },
   });
+    app.startAllMicroservices();
+
   configureGlobalSettings(app, {
     serviceName: "notification server",
     prefix: "api/v1/notification",

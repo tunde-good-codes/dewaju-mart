@@ -17,7 +17,7 @@ export class GoogleWelcomeEmailProvider {
       await this.mailerService.sendMail({
         to: data.email,
         subject: "🚀 Welcome to Dewaju Mart!",
-        template: "../templates/welcome-google.ejs", // Points to templates/welcome-google.ejs
+        template: "welcome-google", // Points to templates/welcome-google.ejs
         context: {
           firstName: data.firstName,
           imageUrl: data.imageUrl,
