@@ -4,7 +4,7 @@ import { CreateUserDto, VerifyOtpDto } from "./dtos/create-user-dto";
 import { ResponseMessage } from "libs/decorator/response.message.decorator";
 import { GoogleAuthGuard } from "./guards/google.auth.guards";
 
-@Controller("auth")
+@Controller()
 export class AuthServiceController {
   constructor(private readonly authService: AuthService) {}
 

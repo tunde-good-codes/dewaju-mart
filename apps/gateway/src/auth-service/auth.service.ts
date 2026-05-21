@@ -5,13 +5,13 @@ import { HttpService } from "@nestjs/axios";
 
 @Injectable()
 export class AuthService {
-  private readonly authServiceUrl: `http://localhost:3001/api/v1/auth`;
+  private readonly authServer: `http://localhost:3001/api/v1/auth`;
 
   constructor(private readonly httpService: HttpService) {}
 
   async registerUser(data: CreateUserDto) {
     const result = await firstValueFrom(
-      this.httpService.post(`${this.authServiceUrl}/register`, data)
+        this.httpService.post(`${this.authServer}/register`, data)
     );
     if (!result) {
       throw new BadGatewayException("Error registering new user");

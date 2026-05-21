@@ -11,6 +11,6 @@ async function bootstrap() {
 
   app.enableShutdownHooks()
   await app.listen(SERVICES_PORT.GATEWAY_SERVICE ?? 3000);
-  logger.log("gateway service is running")
+  logger.log(`gateway service is running on port: ${SERVICES_PORT.GATEWAY_SERVICE} `)
 }
 bootstrap();
