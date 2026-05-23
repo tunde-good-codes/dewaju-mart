@@ -81,6 +81,14 @@ export class AuthService implements OnModuleInit {
       userData: CreateUserDto;
     }>(redisKey);
 
+    const emailCheck = await this.userRepository.findOne({
+      where: { email: verifyOtpDto.email },
+    });
+
+    if (emailCheck) {
+      throw new ConflictException("A user with this email already exists");
+    }
+
     if (!registerUserData?.otp) {
       throw new NotFoundException("OTP not found or has expired");
     }
@@ -88,14 +96,6 @@ export class AuthService implements OnModuleInit {
     if (registerUserData.otp !== verifyOtpDto.otp) {
       throw new ConflictException("OTP mismatched or invalid!");
     }
-
-    const emailCheck = await this.userRepository.findOne({
-      where: { email: verifyOtpDto.email },
-    });
-
-    if (emailCheck) {
-    throw new ConflictException("A user with this email already exists");
-  }
 
     const { firstName, email, lastName, password } = registerUserData.userData;
 
@@ -222,6 +222,18 @@ export class AuthService implements OnModuleInit {
         accessToken,
         refreshToken,
       },
+    };
+  }
+
+  async getUsers() {
+    const users = await this.userRepository.find({});
+    if (!users) {
+      throw new NotFoundException("No user for this system yet");
+    }
+
+    return {
+      users,
+      total: users.length,
     };
   }
   private async updateUserRefreshToken(userId: string, refreshToken: string) {

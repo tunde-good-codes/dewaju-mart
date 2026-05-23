@@ -38,12 +38,20 @@ async verifyOtpRegisterUSer(@Body() dto: VerifyOtpDto) {
   @Get("google")
   @UseGuards(GoogleAuthGuard) // This guard handles the automatic redirection logic instantly
   async googleAuth() {
-    // Left empty intentionally: Passport takes care of the redirect!
+
+    console.log("hello");
+    
   }
   @Get("google/callback")
   @UseGuards(GoogleAuthGuard)
   @ResponseMessage("Google auth operation is successful")
   async googleCallback(@Req() req) {
     return await this.authService.validateGoogleUser(req.user);
+  }
+
+  @Get("users")
+  @ResponseMessage("users fetched successfully!")
+  async getUsers(){
+    return this.authService.getUsers()
   }
 }
