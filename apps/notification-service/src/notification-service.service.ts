@@ -4,32 +4,45 @@ import { GoogleWelcomeEmailProvider } from "./providers/google-email-provider";
 import { KAFKA_SERVICE } from "@app/kafka";
 import { ClientKafka } from "@nestjs/microservices";
 import { UserRegisteredProvider } from "./providers/user-registered-email-provider";
+import { ResetPasswordProvider } from "./providers/reset-password-provider";
 
 @Injectable()
 export class NotificationService implements OnModuleInit {
   constructor(
     private readonly otpEmailProvider: OtpEmailProvider,
     private readonly googleWelcomeEmailProvider: GoogleWelcomeEmailProvider,
-    private readonly userRegistered:UserRegisteredProvider,
+    private readonly userRegistered: UserRegisteredProvider,
+    private readonly resetPasswordProvider: ResetPasswordProvider,
     @Inject(KAFKA_SERVICE)
-    private readonly kafkaClient:ClientKafka
+    private readonly kafkaClient: ClientKafka
   ) {}
 
-
   async onModuleInit() {
-     await this.kafkaClient.connect()
+    await this.kafkaClient.connect();
   }
   async sendOtp(payload: { email: string; otp: string }) {
     await this.otpEmailProvider.sendOtpEmail(payload);
   }
 
-  async sendGoogleWelcome(payload: { email: string; firstName: string; imageUrl?: string }) {
+  async sendGoogleWelcome(payload: {
+    email: string;
+    firstName: string;
+    imageUrl?: string;
+  }) {
     await this.googleWelcomeEmailProvider.send(payload);
   }
-async userEmailRegister(data:{firstName:string, email:string}){
-return this.userRegistered.send(data)
-}
-  getHello(){
-    return "hello"
+  async userEmailRegister(data: { firstName: string; email: string }) {
+    return this.userRegistered.send(data);
+  }
+
+  async resetPasswordOtp(data: {
+    otp: string;
+    email: string;
+    firstName: string;
+  }) {
+    await this.resetPasswordProvider.sendEmail(data);
+  }
+  getHello() {
+    return "hello";
   }
 }

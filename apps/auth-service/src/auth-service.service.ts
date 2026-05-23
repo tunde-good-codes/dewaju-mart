@@ -7,6 +7,9 @@ import {
   NotFoundException,
   OnModuleInit,
   InternalServerErrorException,
+  UnauthorizedException,
+  ForbiddenException,
+  BadRequestException,
 } from "@nestjs/common";
 import { ClientKafka } from "@nestjs/microservices";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -15,11 +18,17 @@ import { Repository } from "typeorm";
 import { CreateUserDto, VerifyOtpDto } from "./dtos/create-user-dto";
 import { Cache, CACHE_MANAGER } from "@nestjs/cache-manager";
 import * as bcrypt from "bcrypt";
-import { randomBytes } from "crypto";
+import { randomBytes, randomInt } from "crypto";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { KAFKA_TOPICS } from "@app/kafka";
-import { GoogleUserData } from "./types";
+import { ForgotPasswordCache, GoogleUserData } from "./types";
+import { LoginDto } from "./dtos/login.dto";
+import {
+  ChangePasswordDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+} from "./dtos/password-reset.dto";
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -50,7 +59,8 @@ export class AuthService implements OnModuleInit {
       throw new ConflictException("A User with this email already exists");
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = randomInt(100000, 999999).toString();
+
     const redisKey = `user-reg:${createUserDto.email}`;
 
     const registrationPayload = {
@@ -143,36 +153,203 @@ export class AuthService implements OnModuleInit {
     };
   }
 
-  getHello(): string {
-    return "Hello World!";
+  async loginUser(dto: LoginDto) {
+    const isRegisteredUser = await this.userRepository.findOne({
+      where: {
+        email: dto.email,
+      },
+    });
+
+    if (!isRegisteredUser) {
+      throw new UnauthorizedException(
+        "The provided email or password is incorrect. Please try again."
+      );
+    }
+
+    let isPassword;
+    if (isRegisteredUser.password) {
+      isPassword = await bcrypt.compare(
+        dto.password,
+        isRegisteredUser?.password
+      );
+    }
+
+    if (!isPassword) {
+      throw new UnauthorizedException(
+        "The provided email or password is incorrect. Please try again."
+      );
+    }
+
+    const { accessToken, refreshToken } = await this.generateTokens(
+      isRegisteredUser.id,
+      isRegisteredUser.email,
+      isRegisteredUser.role
+    );
+
+    await this.updateUserRefreshToken(isRegisteredUser.id, refreshToken);
+    const { password, ...safeUser } = isRegisteredUser;
+    return {
+      user: safeUser,
+      accessToken,
+      refreshToken,
+    };
   }
 
-  private async generateTokens(userId: string, email: string, role: string) {
-    const payload = { sub: userId, email, role };
-    const refreshTokenKey = randomBytes(16).toString("hex");
+  async getLoggedInUser(id: string) {
+    const user = await this.userRepository.findOne({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        imageUrl: true,
+        role: true,
+        isAdmin: true,
+      },
+    });
 
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        expiresIn: this.configService.getOrThrow("JWT_EXPIRES_IN"),
+    if (!user)
+      throw new ForbiddenException("Authenticate before using this endpoint");
+    return {
+      user,
+      message: "user fetched!",
+    };
+  }
 
-        secret: this.configService.getOrThrow<string>("JWT_SECRET"),
-      }),
+  async forgotPasswordToken(dto: ForgotPasswordDto) {
+    const user = await this.userRepository.findOne({
+      where: {
+        email: dto.email,
+      },
+    });
 
-      this.jwtService.signAsync(
-        { ...payload, refreshTokenKey },
-        {
-          secret: this.configService.getOrThrow<string>("JWT_REFRESH_SECRET"),
-        }
-      ),
-    ]);
+    if (!user) {
+      return { message: "If this email exists, an OTP has been sent to it" };
+    }
 
-    return { accessToken, refreshToken };
+    if (user.provider === AuthProvider.GOOGLE) {
+      throw new BadRequestException(
+        "This user registered with google and cannot change password"
+      );
+    }
+
+    const redisKey = `forget-password:${dto.email}`;
+
+    const otp = randomInt(100000, 999999).toString();
+    const { email, role, firstName } = user;
+    const redisData = {
+      otp,
+      email,
+      role,
+      firstName,
+    };
+    try {
+      await this.cacheManager.set(redisKey, redisData, 300000);
+    } catch (error) {
+      throw new BadRequestException(`redis failed ${redisKey} to set`);
+    }
+
+    this.kafkaClient.emit(KAFKA_TOPICS.FORGOT_PASSWORD_OTP, redisData);
+
+    return {
+      message: "If this email exists, an otp has been sent to it",
+    };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    // after a user clicked forgot password on the ui and got a input to input their email, i supposed they'd be directed to a page where they only input the otp they got in their email. when the otp matches another input elemet to input their new password. so where is dto.email coming from  here.... i suppose dto.email is only active when user inputed their email in forgotpasswordtoken
+
+    const redisKey = `forget-password:${dto.email}`;
+
+    const redisData =
+      await this.cacheManager.get<ForgotPasswordCache>(redisKey);
+
+    if (!redisData) {
+      throw new NotFoundException("otp not found or expired ");
+    }
+    const { otp, email, role, firstName } = redisData;
+
+    if (dto.otp !== otp) {
+      throw new ConflictException("Otp Mismatched or expired");
+    }
+
+    const user = await this.userRepository.findOne({
+      where: {
+        email,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("no user found found");
+    }
+
+    const hashPassword = await bcrypt.hash(dto.newPassword, 10);
+    await this.userRepository.update(user.id, {
+      password: hashPassword,
+      refreshToken: null,
+    });
+
+    await this.cacheManager.del(redisKey);
+    return {
+      message: "password reset successfully",
+    };
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new ForbiddenException(
+        "you need to be authenticated to change password"
+      );
+    }
+
+    if (!user.password) {
+      throw new BadRequestException("Password required to continue");
+    }
+
+    if (user.provider === AuthProvider.GOOGLE) {
+      throw new BadRequestException(
+        "This user registered with google and cannot change password"
+      );
+    }
+    const isPasswordMatch = await bcrypt.compare(
+      dto.currentPassword,
+      user.password
+    );
+    if (!isPasswordMatch) {
+      throw new BadRequestException(
+        "Invalid password! Enter the right password"
+      );
+    }
+
+    const isSamePassword = await bcrypt.compare(dto.newPassword, user.password);
+
+    if (isSamePassword) {
+      throw new ConflictException(
+        "Same password as previous password. Enter a new password"
+      );
+    }
+    const hashPassword = await bcrypt.hash(dto.newPassword, 10);
+    await this.userRepository.update(user.id, {
+      password: hashPassword,
+      refreshToken: null,
+    });
+  }
+  getHello(): string {
+    return "Hello World!";
   }
 
   async validateGoogleUser(googleUserData: GoogleUserData) {
     let user = await this.userRepository.findOne({
       where: {
         email: googleUserData.email,
+        provider: AuthProvider.GOOGLE,
       },
     });
 
@@ -226,8 +403,18 @@ export class AuthService implements OnModuleInit {
   }
 
   async getUsers() {
-    const users = await this.userRepository.find({});
-    if (!users) {
+    const users = await this.userRepository.find({
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        imageUrl: true,
+        role: true,
+        isAdmin: true,
+      },
+    });
+    if (users.length === 0) {
       throw new NotFoundException("No user for this system yet");
     }
 
@@ -237,6 +424,35 @@ export class AuthService implements OnModuleInit {
     };
   }
   private async updateUserRefreshToken(userId: string, refreshToken: string) {
-    await this.userRepository.update({ id: userId }, { refreshToken });
+    const refreshTokenHashed = await bcrypt.hash(refreshToken, 10);
+    await this.userRepository.update(
+      { id: userId },
+      { refreshToken: refreshTokenHashed }
+    );
+  }
+
+  private async generateTokens(userId: string, email: string, role: string) {
+    const payload = { sub: userId, email, role };
+    const refreshTokenKey = randomBytes(16).toString("hex");
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.getOrThrow("JWT_EXPIRES_IN"),
+
+        secret: this.configService.getOrThrow<string>("JWT_SECRET"),
+      }),
+
+      this.jwtService.signAsync(
+        { ...payload, refreshTokenKey },
+        {
+          secret: this.configService.getOrThrow<string>("JWT_REFRESH_SECRET"),
+          expiresIn: this.configService.getOrThrow<string>(
+            "REFRESH_EXPIRES_IN"
+          ) as string as any,
+        }
+      ),
+    ]);
+
+    return { accessToken, refreshToken };
   }
 }

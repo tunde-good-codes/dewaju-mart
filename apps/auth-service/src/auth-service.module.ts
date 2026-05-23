@@ -12,6 +12,7 @@ import { User } from "./entities/User";
 import { GoogleStrategy } from "./strategies/google.strategy";
 import { PassportModule } from "@nestjs/passport";
 import { ThrottlerModule } from "@nestjs/throttler";
+import { JwtStrategy } from "./strategies/jwtStrategy";
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -53,6 +54,6 @@ import { ThrottlerModule } from "@nestjs/throttler";
     }),
   ],
   controllers: [AuthServiceController],
-  providers: [AuthService, GoogleStrategy],
+  providers: [AuthService, GoogleStrategy, JwtStrategy],
 })
 export class AuthServiceModule {}

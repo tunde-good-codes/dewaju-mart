@@ -29,6 +29,13 @@ export class NotificationServiceController {
     return this.notificationService.userEmailRegister(data);
   }
 
+  @EventPattern(KAFKA_TOPICS.FORGOT_PASSWORD_OTP)
+  async resetPassword(
+    @Payload() data: { otp: string; email: string; firstName: string }
+  ) {
+    return this.notificationService.resetPasswordOtp(data)
+  }
+  
   @Get()
   getHello() {
     return this.notificationService.getHello();

@@ -63,14 +63,47 @@ export class AuthService {
     }
   }
 
-async getAllUsers(){
-  try {
-    const result = await firstValueFrom(this.httpService.get(`${this.authServer}/users`))
-    return result.data
-  } catch (error) {
-    this.handleAxiosError(error)
+  async getAllUsers(authToken: string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.get(`${this.authServer}/users`, {
+          headers: {
+            Authorization: authToken,
+          },
+        })
+      );
+      return result.data;
+    } catch (error) {
+      this.handleAxiosError(error);
+    }
   }
-}
+
+  async loginUser(data: { email: string; password: string }) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.post(`${this.authServer}/login`, data)
+      );
+      return result.data;
+    } catch (error) {
+      this.handleAxiosError(error);
+    }
+  }
+
+  async getAUser(authToken: string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.get(`${this.authServer}/user`, {
+          headers: {
+            Authorization: authToken,
+          },
+        })
+      );
+
+      return result.data
+    } catch (error) {
+      this.handleAxiosError(error);
+    }
+  }
   private handleAxiosError(error: AxiosError): never {
     if (error.response) {
       const status = error.response.status;

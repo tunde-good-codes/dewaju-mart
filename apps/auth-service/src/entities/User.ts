@@ -51,12 +51,8 @@ export class User {
     nullable: true,
   })
   password?: string;
-
-  @Column({
-    type: "varchar",
-    nullable: true,
-  })
-  refreshToken?: string;
+  @Column({ nullable: true, default: null })
+  refreshToken: string | null;
 
   @Column({
     type: "enum",
