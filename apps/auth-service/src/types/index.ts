@@ -19,6 +19,5 @@ export interface GoogleUserData {
 export interface ForgotPasswordCache {
   otp: string;
   email: string;
-  role: string;
   firstName: string;
 }

@@ -208,6 +208,7 @@ export class AuthService implements OnModuleInit {
         imageUrl: true,
         role: true,
         isAdmin: true,
+        refreshToken:true
       },
     });
 
@@ -239,11 +240,10 @@ export class AuthService implements OnModuleInit {
     const redisKey = `forget-password:${dto.email}`;
 
     const otp = randomInt(100000, 999999).toString();
-    const { email, role, firstName } = user;
+    const { email, firstName } = user;
     const redisData = {
       otp,
       email,
-      role,
       firstName,
     };
     try {
@@ -260,7 +260,6 @@ export class AuthService implements OnModuleInit {
   }
 
   async resetPassword(dto: ResetPasswordDto) {
-    // after a user clicked forgot password on the ui and got a input to input their email, i supposed they'd be directed to a page where they only input the otp they got in their email. when the otp matches another input elemet to input their new password. so where is dto.email coming from  here.... i suppose dto.email is only active when user inputed their email in forgotpasswordtoken
 
     const redisKey = `forget-password:${dto.email}`;
 
@@ -270,7 +269,7 @@ export class AuthService implements OnModuleInit {
     if (!redisData) {
       throw new NotFoundException("otp not found or expired ");
     }
-    const { otp, email, role, firstName } = redisData;
+    const { otp, email,  firstName } = redisData;
 
     if (dto.otp !== otp) {
       throw new ConflictException("Otp Mismatched or expired");

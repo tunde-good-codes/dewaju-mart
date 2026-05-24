@@ -88,7 +88,7 @@ export class AuthServiceController {
   @Post("change-password")
   @ResponseMessage("password updated successfully")
   @UseGuards(JwtAuthGuard)
-  async changePassword(@Req() id: string, @Body() dto: ChangePasswordDto) {
-    return await this.authService.changePassword(id, dto);
+  async changePassword(@Req() req, @Body() dto: ChangePasswordDto) {
+    return await this.authService.changePassword(req.user.id, dto);
   }
 }

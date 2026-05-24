@@ -22,15 +22,12 @@ export class ResetPasswordDto {
   newPassword: string;
 }
 
-
-export class ChangePasswordDto{
-    
+export class ChangePasswordDto {
   @IsString()
   @IsNotEmpty()
   currentPassword: string;
   @IsString()
   @IsNotEmpty()
-    @MinLength(8)
-
+  @MinLength(8)
   newPassword: string;
 }

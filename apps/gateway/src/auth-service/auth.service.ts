@@ -12,6 +12,10 @@ import { firstValueFrom } from "rxjs";
 import { HttpService } from "@nestjs/axios";
 import { SERVICES_PORT } from "libs/shared/constants/services.constant";
 import { AxiosError } from "axios";
+import {
+  ChangePasswordDto,
+  ResetPasswordDto,
+} from "apps/auth-service/src/dtos/password-reset.dto";
 
 @Injectable()
 export class AuthService {
@@ -78,6 +82,42 @@ export class AuthService {
     }
   }
 
+  async forgotPassword(email: string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.post(`${this.authServer}/forgot-password`, email)
+      );
+      return result.data;
+    } catch (error) {
+      this.handleAxiosError(error);
+    }
+  }
+
+  async resetPassword(data: ResetPasswordDto) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.post(`${this.authServer}/reset-password`, data)
+      );
+      return await result.data;
+    } catch (error) {
+      this.handleAxiosError(error);
+    }
+  }
+
+  async changePassword(token: string, data: ChangePasswordDto) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.post(`${this.authServer}/change-password`, data, {
+          headers: {
+            Authorization: token,
+          },
+        })
+      );
+      return result.data;
+    } catch (error) {
+      this.handleAxiosError(error);
+    }
+  }
   async loginUser(data: { email: string; password: string }) {
     try {
       const result = await firstValueFrom(
@@ -99,7 +139,7 @@ export class AuthService {
         })
       );
 
-      return result.data
+      return result.data;
     } catch (error) {
       this.handleAxiosError(error);
     }
