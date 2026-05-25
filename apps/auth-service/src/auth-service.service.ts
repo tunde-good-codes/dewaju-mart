@@ -555,11 +555,66 @@ export class AuthService implements OnModuleInit {
     //   await this.cacheManager.set(`blacklist:${jti}`, true, ttl);
     // }
 
-
-    await this.userRepository.increment({id:userId}, "tokenVersion", 1)
+    await this.userRepository.increment({ id: userId }, "tokenVersion", 1);
     await this.userRepository.update(userId, { refreshToken: null });
 
     return { message: "Logged out successfully" };
+  }
+
+  async sendVerificationOtp(email: string) {
+    const user = await this.userRepository.findOne({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new NotFoundException(
+        "An otp sent. If a user with this email exit"
+      );
+    }
+
+    if (user.isVerified) {
+      throw new ConflictException("user has been verified already!");
+    }
+    const otp = randomInt(100000, 999999).toString();
+    const redisKey = `verify-otp:${email}`;
+    await this.cacheManager.set(redisKey, otp, 300000);
+
+    const eventData = {
+      name: user.firstName,
+      email: user.email,
+      otp,
+    };
+    this.kafkaClient.emit(KAFKA_TOPICS.VERIFY_EMAIL_OTP, eventData);
+    return `a verification otp has been sent to ${user.email}`;
+  }
+  async verifyUserEmail(dto: { email: string; otp: string }) {
+    const user = await this.userRepository.findOne({
+      where: {
+        email: dto.email,
+      },
+    });
+
+    if (!user || user.isVerified) {
+      throw new BadRequestException(
+        "This account has been verified or doesn't exist"
+      );
+    }
+    const redisKey = `verify-otp:${dto.email}`;
+    const otp = await this.cacheManager.get(redisKey);
+    if (!otp) {
+      throw new NotFoundException("otp not found or expired");
+    }
+    if (dto.otp !== otp) {
+      throw new ConflictException("otp mismatched");
+    }
+
+    await this.userRepository.update(user.id, {
+      isVerified: true,
+    });
+
+
+    await this.cacheManager.del(redisKey)
+    return `email verification process completed`;
   }
 
   async logoutAll(userId: string) {
@@ -571,8 +626,7 @@ export class AuthService implements OnModuleInit {
     //   await this.cacheManager.set(`blacklist:${jti}`, true, ttl);
     // }
 
-
-    await this.userRepository.increment({id:userId}, "tokenVersion", 1)
+    await this.userRepository.increment({ id: userId }, "tokenVersion", 1);
     await this.userRepository.update(userId, { refreshToken: null });
 
     return { message: "Logged out from all devices successfully" };

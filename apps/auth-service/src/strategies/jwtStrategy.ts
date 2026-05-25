@@ -31,7 +31,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
   }) {
     // const blacklistKey = `blacklist:${payload.jti}`;
 
-    // const isBlacklisted = await this.cacheManager.get<string>(blacklistKey);
+    // const isBlacklisted = await this.cacheManager.get(blacklistKey);
     // if (isBlacklisted) {
     //   throw new UnauthorizedException(
     //     "Token has been invalidated. Please log in again."

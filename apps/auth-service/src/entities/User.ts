@@ -53,7 +53,7 @@ export class User {
   password?: string;
   @Column({ type: "boolean", default: false })
   isVerified: boolean;
-  @Column({ type: "number", default: 1 })
+  @Column({ type: "bigint", default: 1 })
   tokenVersion: number;
   @Column({ type: "text", nullable: true, default: null })
   refreshToken: string | null;
