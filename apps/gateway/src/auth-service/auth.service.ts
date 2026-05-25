@@ -14,6 +14,8 @@ import { SERVICES_PORT } from "libs/shared/constants/services.constant";
 import { AxiosError } from "axios";
 import {
   ChangePasswordDto,
+  RefreshTokenDto,
+  ResendOtpDto,
   ResetPasswordDto,
 } from "apps/auth-service/src/dtos/password-reset.dto";
 
@@ -144,6 +146,59 @@ export class AuthService {
       this.handleAxiosError(error);
     }
   }
+
+  async logout(token: string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.post(
+          `${this.authServer}/logout`,
+          {},
+          { headers: { Authorization: token } }
+        )
+      );
+      return result.data;
+    } catch (error) {
+      this.handleAxiosError(error);
+    }
+  }
+
+  async logoutAll(token: string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.post(
+          `${this.authServer}/logout-all`,
+          {},
+          { headers: { Authorization: token } }
+        )
+      );
+      return result.data;
+    } catch (error) {
+      this.handleAxiosError(error);
+    }
+  }
+
+  async refreshToken(dto: RefreshTokenDto) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.post(`${this.authServer}/refresh-token`, dto)
+      );
+      return result.data;
+    } catch (error) {
+      this.handleAxiosError(error);
+    }
+  }
+
+  async resendOtp(dto: ResendOtpDto) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.post(`${this.authServer}/resend-otp`, dto)
+      );
+      return result.data;
+    } catch (error) {
+      this.handleAxiosError(error);
+    }
+  }
+
   private handleAxiosError(error: AxiosError): never {
     if (error.response) {
       const status = error.response.status;
@@ -154,7 +209,6 @@ export class AuthService {
       throw new HttpException(data?.message ?? "Auth service error", status);
     }
 
-    // auth-service was unreachable (network error, service down)
     this.logger.error(`Auth service unreachable: ${error.message}`);
     throw new BadGatewayException("Auth service is currently unavailable");
   }

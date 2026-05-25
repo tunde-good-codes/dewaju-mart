@@ -1,17 +1,20 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { User } from "../entities/User";
 import { Repository } from "typeorm";
 import { ConfigService } from "@nestjs/config";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { InjectRepository } from "@nestjs/typeorm";
+import { Cache, CACHE_MANAGER } from "@nestjs/cache-manager";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -20,7 +23,21 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
     });
   }
 
-  async validate(payload: { sub: string; email: string; role: string }) {
+  async validate(payload: {
+    sub: string;
+    email: string;
+    role: string;
+    tokenVersion: number;
+  }) {
+    // const blacklistKey = `blacklist:${payload.jti}`;
+
+    // const isBlacklisted = await this.cacheManager.get<string>(blacklistKey);
+    // if (isBlacklisted) {
+    //   throw new UnauthorizedException(
+    //     "Token has been invalidated. Please log in again."
+    //   );
+    // }
+
     const user = await this.userRepository.findOne({
       where: {
         id: payload.sub,
@@ -31,6 +48,9 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
       throw new UnauthorizedException("User no longer exist");
     }
 
-    return user // attached as req.user
+    if (user.tokenVersion !== payload.tokenVersion) {
+      throw new UnauthorizedException("Session Expired. Please log in");
+    }
+    return user;
   }
 }

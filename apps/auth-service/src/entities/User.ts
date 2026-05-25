@@ -51,6 +51,10 @@ export class User {
     nullable: true,
   })
   password?: string;
+  @Column({ type: "boolean", default: false })
+  isVerified: boolean;
+  @Column({ type: "number", default: 1 })
+  tokenVersion: number;
   @Column({ type: "text", nullable: true, default: null })
   refreshToken: string | null;
 

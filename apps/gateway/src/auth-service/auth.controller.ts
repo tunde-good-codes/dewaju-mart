@@ -8,6 +8,8 @@ import type { Response } from "express";
 import { LoginDto } from "apps/auth-service/src/dtos/login.dto";
 import {
   ChangePasswordDto,
+  RefreshTokenDto,
+  ResendOtpDto,
   ResetPasswordDto,
 } from "apps/auth-service/src/dtos/password-reset.dto";
 
@@ -75,4 +77,29 @@ export class AuthController {
   async loginUser(@Body() dto: LoginDto) {
     return this.authService.loginUser(dto);
   }
+
+
+
+
+@Post("logout")
+async logout(@Headers("authorization") token: string) {
+  const formattedToken = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+  return this.authService.logout(formattedToken);
+}
+
+@Post("logout-all")
+async logoutAll(@Headers("authorization") token: string) {
+  const formattedToken = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+  return this.authService.logoutAll(formattedToken);
+}
+
+@Post("refresh-token")
+async refreshToken(@Body() dto: RefreshTokenDto) {
+  return this.authService.refreshToken(dto);
+}
+
+@Post("resend-otp")
+async resendOtp(@Body() dto: ResendOtpDto) {
+  return this.authService.resendOtp(dto);
+}
 }

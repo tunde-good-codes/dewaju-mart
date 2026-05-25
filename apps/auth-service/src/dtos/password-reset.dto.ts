@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from "class-validator";
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+} from "class-validator";
 
 export class ForgotPasswordDto {
   @IsEmail()
@@ -30,4 +36,19 @@ export class ChangePasswordDto {
   @IsNotEmpty()
   @MinLength(8)
   newPassword: string;
+}
+
+export class RefreshTokenDto {
+  @IsString()
+  @IsNotEmpty()
+  refreshToken: string;
+}
+
+export class ResendOtpDto {
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+
+  @IsEnum(["registration", "forgot-password"])
+  type: "registration" | "forgot-password";
 }

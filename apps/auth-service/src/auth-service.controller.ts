@@ -9,6 +9,8 @@ import { LoginDto } from "./dtos/login.dto";
 import {
   ChangePasswordDto,
   ForgotPasswordDto,
+  RefreshTokenDto,
+  ResendOtpDto,
   ResetPasswordDto,
 } from "./dtos/password-reset.dto";
 
@@ -91,4 +93,35 @@ export class AuthServiceController {
   async changePassword(@Req() req, @Body() dto: ChangePasswordDto) {
     return await this.authService.changePassword(req.user.id, dto);
   }
+
+
+
+
+@Post("logout")
+@UseGuards(JwtAuthGuard)
+@ResponseMessage("logged out successfully")
+async logout(@Req() req) {
+  // const token = req.headers.authorization.replace("Bearer ", "");
+  return this.authService.logout(req.user.id);
+}
+
+@Post("logout-all")
+@UseGuards(JwtAuthGuard)
+@ResponseMessage("logged out from all devices")
+async logoutAll(@Req() req) {
+ // const token = req.headers.authorization.replace("Bearer ", "");
+  return this.authService.logoutAll(req.user.id);
+}
+
+@Post("refresh-token")
+@ResponseMessage("tokens refreshed successfully")
+async refreshToken(@Body() dto: RefreshTokenDto) {
+  return this.authService.refreshToken(dto.refreshToken);
+}
+
+@Post("resend-otp")
+@ResponseMessage("otp resent successfully")
+async resendOtp(@Body() dto: ResendOtpDto) {
+  return this.authService.resendOtp(dto.email, dto.type);
+}
 }

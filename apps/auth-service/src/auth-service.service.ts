@@ -119,6 +119,7 @@ export class AuthService implements OnModuleInit {
       email,
       lastName,
       password: hashPassword,
+      isVerified: true,
     });
 
     await this.userRepository.save(newUser);
@@ -134,7 +135,8 @@ export class AuthService implements OnModuleInit {
     const { accessToken, refreshToken } = await this.generateTokens(
       newUser.id,
       newUser.email,
-      newUser.role
+      newUser.role,
+      newUser.tokenVersion
     );
 
     await this.updateUserRefreshToken(newUser.id, refreshToken);
@@ -166,6 +168,11 @@ export class AuthService implements OnModuleInit {
       );
     }
 
+    if (!isRegisteredUser.isVerified) {
+      throw new ForbiddenException(
+        "Please verify your email before logging in. Check your inbox for the OTP."
+      );
+    }
     let isPassword;
     if (isRegisteredUser.password) {
       isPassword = await bcrypt.compare(
@@ -183,7 +190,8 @@ export class AuthService implements OnModuleInit {
     const { accessToken, refreshToken } = await this.generateTokens(
       isRegisteredUser.id,
       isRegisteredUser.email,
-      isRegisteredUser.role
+      isRegisteredUser.role,
+      isRegisteredUser.tokenVersion
     );
 
     await this.updateUserRefreshToken(isRegisteredUser.id, refreshToken);
@@ -208,7 +216,7 @@ export class AuthService implements OnModuleInit {
         imageUrl: true,
         role: true,
         isAdmin: true,
-        refreshToken:true
+        refreshToken: true,
       },
     });
 
@@ -260,7 +268,6 @@ export class AuthService implements OnModuleInit {
   }
 
   async resetPassword(dto: ResetPasswordDto) {
-
     const redisKey = `forget-password:${dto.email}`;
 
     const redisData =
@@ -269,7 +276,7 @@ export class AuthService implements OnModuleInit {
     if (!redisData) {
       throw new NotFoundException("otp not found or expired ");
     }
-    const { otp, email,  firstName } = redisData;
+    const { otp, email, firstName } = redisData;
 
     if (dto.otp !== otp) {
       throw new ConflictException("Otp Mismatched or expired");
@@ -382,7 +389,8 @@ export class AuthService implements OnModuleInit {
     const { accessToken, refreshToken } = await this.generateTokens(
       user.id,
       user.email,
-      user.role
+      user.role,
+      user.tokenVersion
     );
     await this.updateUserRefreshToken(user.id, refreshToken);
 
@@ -430,8 +438,153 @@ export class AuthService implements OnModuleInit {
     );
   }
 
-  private async generateTokens(userId: string, email: string, role: string) {
-    const payload = { sub: userId, email, role };
+  async refreshToken(incomingRefreshToken: string) {
+    let payload: { sub: string; email: string; role: string };
+
+    try {
+      payload = await this.jwtService.verifyAsync(incomingRefreshToken, {
+        secret: this.configService.getOrThrow<string>("JWT_REFRESH_SECRET"),
+      });
+    } catch {
+      throw new UnauthorizedException(
+        "Refresh token is invalid or has expired"
+      );
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { id: payload.sub },
+    });
+
+    if (!user || !user.refreshToken) {
+      throw new UnauthorizedException("Session expired. Please log in again.");
+    }
+
+    const isMatch = await bcrypt.compare(
+      incomingRefreshToken,
+      user.refreshToken
+    );
+    if (!isMatch) {
+      await this.userRepository.update(user.id, { refreshToken: null });
+      throw new UnauthorizedException(
+        "Refresh token reuse detected. All sessions have been invalidated."
+      );
+    }
+
+    const { accessToken, refreshToken: newRefreshToken } =
+      await this.generateTokens(
+        user.id,
+        user.email,
+        user.role,
+        user.tokenVersion
+      );
+
+    await this.updateUserRefreshToken(user.id, newRefreshToken);
+
+    return { accessToken, refreshToken: newRefreshToken };
+  }
+
+  async resendOtp(email: string, type: "registration" | "forgot-password") {
+    const rateLimitKey = `resend-limit:${type}:${email}`;
+    const attempts = (await this.cacheManager.get<number>(rateLimitKey)) ?? 0;
+
+    if (attempts >= 3) {
+      throw new BadRequestException(
+        "Too many OTP requests. Please wait 10 minutes before trying again."
+      );
+    }
+
+    await this.cacheManager.set(rateLimitKey, attempts + 1, 600000);
+
+    if (type === "registration") {
+      const user = await this.userRepository.findOne({ where: { email } });
+      if (user?.isVerified) {
+        throw new ConflictException(
+          "This email is already verified. Please log in."
+        );
+      }
+
+      const redisKey = `user-reg:${email}`;
+      const existingData = await this.cacheManager.get<{
+        otp: string;
+        userData: CreateUserDto;
+      }>(redisKey);
+
+      if (!existingData) {
+        throw new NotFoundException(
+          "Registration session not found. Please register again."
+        );
+      }
+
+      const otp = randomInt(100000, 999999).toString();
+      await this.cacheManager.set(redisKey, { ...existingData, otp }, 300000);
+
+      this.kafkaClient.emit(KAFKA_TOPICS.REGISTER_USER_OTP, {
+        email,
+        otp,
+      });
+    } else {
+      const redisKey = `forget-password:${email}`;
+      const existingData =
+        await this.cacheManager.get<ForgotPasswordCache>(redisKey);
+
+      if (!existingData) {
+        throw new NotFoundException(
+          "Password reset session not found. Please request a new OTP."
+        );
+      }
+
+      const otp = randomInt(100000, 999999).toString();
+      await this.cacheManager.set(redisKey, { ...existingData, otp }, 300000);
+
+      this.kafkaClient.emit(KAFKA_TOPICS.FORGOT_PASSWORD_OTP, {
+        email,
+        otp,
+        firstName: existingData.firstName,
+      });
+    }
+
+    return { message: "A fresh OTP has been sent to your email" };
+  }
+
+  async logout(userId: string) {
+    // const decoded = this.jwtService.decode(token) as { exp: number };
+    // const now = Math.floor(Date.now() / 1000);
+    // const ttl = (decoded.exp - now) * 1000;
+
+    // if (ttl > 0) {
+    //   await this.cacheManager.set(`blacklist:${jti}`, true, ttl);
+    // }
+
+
+    await this.userRepository.increment({id:userId}, "tokenVersion", 1)
+    await this.userRepository.update(userId, { refreshToken: null });
+
+    return { message: "Logged out successfully" };
+  }
+
+  async logoutAll(userId: string) {
+    // const decoded = this.jwtService.decode(token) as { exp: number };
+    // const now = Math.floor(Date.now() / 1000);
+    // const ttl = (decoded.exp - now) * 1000;
+
+    // if (ttl > 0) {
+    //   await this.cacheManager.set(`blacklist:${jti}`, true, ttl);
+    // }
+
+
+    await this.userRepository.increment({id:userId}, "tokenVersion", 1)
+    await this.userRepository.update(userId, { refreshToken: null });
+
+    return { message: "Logged out from all devices successfully" };
+  }
+
+  private async generateTokens(
+    userId: string,
+    email: string,
+    role: string,
+    tokenVersion: number
+  ) {
+    const payload = { sub: userId, email, role, tokenVersion };
     const refreshTokenKey = randomBytes(16).toString("hex");
 
     const [accessToken, refreshToken] = await Promise.all([
