@@ -10,6 +10,7 @@ import { GoogleWelcomeEmailProvider } from "./providers/google-email-provider";
 import { OtpEmailProvider } from "./providers/otp-email-provider";
 import { UserRegisteredProvider } from "./providers/user-registered-email-provider";
 import { ResetPasswordProvider } from "./providers/reset-password-provider";
+import { VerifyEmailOtpProvider } from "./providers/verify-email-otp";
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { ResetPasswordProvider } from "./providers/reset-password-provider";
     OtpEmailProvider,
     UserRegisteredProvider,
     ResetPasswordProvider,
+    VerifyEmailOtpProvider,
   ],
 })
 export class NotificationServiceModule {}

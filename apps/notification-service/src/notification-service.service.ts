@@ -1,3 +1,4 @@
+import { VerifyEmailOtpProvider } from './providers/verify-email-otp';
 import { Inject, Injectable, OnModuleInit } from "@nestjs/common";
 import { OtpEmailProvider } from "./providers/otp-email-provider";
 import { GoogleWelcomeEmailProvider } from "./providers/google-email-provider";
@@ -13,6 +14,7 @@ export class NotificationService implements OnModuleInit {
     private readonly googleWelcomeEmailProvider: GoogleWelcomeEmailProvider,
     private readonly userRegistered: UserRegisteredProvider,
     private readonly resetPasswordProvider: ResetPasswordProvider,
+    private readonly verifyEmailOtpProvider: VerifyEmailOtpProvider,
     @Inject(KAFKA_SERVICE)
     private readonly kafkaClient: ClientKafka
   ) {}
@@ -41,6 +43,10 @@ export class NotificationService implements OnModuleInit {
     firstName: string;
   }) {
     await this.resetPasswordProvider.sendEmail(data);
+  }
+
+  async verifyEmailOtp(data: { name: string; email: string; otp: string}) {
+    await this.verifyEmailOtpProvider.sendEmail(data)
   }
   getHello() {
     return "hello";

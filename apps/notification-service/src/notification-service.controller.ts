@@ -33,9 +33,17 @@ export class NotificationServiceController {
   async resetPassword(
     @Payload() data: { otp: string; email: string; firstName: string }
   ) {
-    return this.notificationService.resetPasswordOtp(data)
+    return this.notificationService.resetPasswordOtp(data);
   }
-  
+
+  @EventPattern(KAFKA_TOPICS.VERIFY_EMAIL_OTP)
+  async verifyEmailOtp(
+    @Payload() data: { name: string; email: string; otp: string }
+  ) {
+
+    return await this.notificationService.verifyEmailOtp(data)
+  }
+
   @Get()
   getHello() {
     return this.notificationService.getHello();

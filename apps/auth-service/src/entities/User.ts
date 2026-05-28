@@ -51,6 +51,12 @@ export class User {
     nullable: true,
   })
   password?: string;
+
+  @Column({
+    type: "varchar",
+    nullable: true,
+  })
+  googleId?: string;
   @Column({ type: "boolean", default: false })
   isVerified: boolean;
   @Column({ type: "bigint", default: 1 })

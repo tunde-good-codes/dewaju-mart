@@ -366,6 +366,7 @@ export class AuthService implements OnModuleInit {
         firstName: googleUserData.firstName,
         lastName: googleUserData.lastName,
         imageUrl: googleUserData.imageUrl,
+        googleId:googleUserData.googleId,
         provider: AuthProvider.GOOGLE,
       });
 

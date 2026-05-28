@@ -14,6 +14,7 @@ export interface GoogleUserData {
   firstName: string;
   lastName: string;
   imageUrl?: string;
+  googleId?: string;
 }
 
 export interface ForgotPasswordCache {
