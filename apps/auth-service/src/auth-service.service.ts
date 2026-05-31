@@ -267,6 +267,10 @@ export class AuthService implements OnModuleInit {
     };
   }
 
+
+  async updateUserData(){
+    
+  }
   async resetPassword(dto: ResetPasswordDto) {
     const redisKey = `forget-password:${dto.email}`;
 
