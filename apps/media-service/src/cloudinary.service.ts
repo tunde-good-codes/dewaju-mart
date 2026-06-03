@@ -1,65 +1,59 @@
-import { BadRequestException, Injectable, Logger } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
-import * as streamifier from "streamifier";
-@Injectable()
-export class CloudinaryService {
-  private readonly logger = new Logger("media-service");
-  private readonly folder: string;
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
+import { Readable } from 'stream';
 
-  constructor(private readonly configService: ConfigService) {
-    this.folder = this.configService.getOrThrow<string>("CLOUDINARY_FOLDER");
+@Injectable()
+export class CloudinaryService implements OnModuleInit {
+  private readonly logger = new Logger(CloudinaryService.name);
+
+  constructor(private readonly configService: ConfigService) {}
+
+  onModuleInit() {
+    cloudinary.config({
+      cloud_name: this.configService.getOrThrow<string>('CLOUDINARY_CLOUD_NAME'),
+      api_key: this.configService.getOrThrow<string>('CLOUDINARY_API_KEY'),
+      api_secret: this.configService.getOrThrow<string>('CLOUDINARY_API_SECRET'),
+    });
+    this.logger.log('Cloudinary configured successfully');
   }
 
-  async uploadFile(file: Express.Multer.File, subFolder: string) {
+  async uploadBuffer(
+    buffer: Buffer,
+    folder: string,
+    options?: { publicId?: string; transformation?: object },
+  ): Promise<UploadApiResponse> {
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          folder: `${this.folder}/${subFolder}`,
-          resource_type: "auto",
+          folder,
+          public_id: options?.publicId,
+          transformation: options?.transformation ?? [
+            { quality: 'auto', fetch_format: 'auto' },
+          ],
+          resource_type: 'auto',
         },
-
-        (error, result: UploadApiResponse) => {
-          if (error) {
-            this.logger.error(`cloudinary upload failed. ${error.message}`);
-
-            return reject(
-              new BadRequestException("Image upload to cloudinary failed")
-            );
-          }
-          resolve(result.secure_url);
-        }
+        (error, result:UploadApiResponse) => {
+          if (error) return reject(error);
+          resolve(result);
+        },
       );
 
-      streamifier.createReadStream(file.buffer).pipe(uploadStream);
+      const readable = new Readable();
+      readable.push(buffer);
+      readable.push(null);
+      readable.pipe(uploadStream);
     });
   }
 
-
-    async uploadFiles(
-    files: Express.Multer.File[],
-    subfolder: string
-  ) {
-    if (files.length > 4) {
-      throw new BadRequestException("Maximum of 4 images allowed per product");
-    }
-
-    const uploads = files.map((file) => this.uploadFile(file, subfolder));
-    return Promise.all(uploads); 
+  async deleteByPublicId(publicId: string): Promise<void> {
+    await cloudinary.uploader.destroy(publicId);
+    this.logger.log(`Deleted Cloudinary asset: ${publicId}`);
   }
 
-  async deleteFile(imageUrl: string): Promise<void> {
-    try {
-      const splits = imageUrl.split("/");
-      const filename = splits[splits.length - 1].split(".")[0];
-      const folder = splits[splits.length - 2];
-      const publicId = `${this.folder}/${folder}/${filename}`;
-
-      await cloudinary.uploader.destroy(publicId);
-      this.logger.log(`Deleted image: ${publicId}`);
-    } catch (error) {
-      this.logger.error(`Failed to delete image: ${error.message}`);
-    }
+  async deleteManyByPublicIds(publicIds: string[]): Promise<void> {
+    if (!publicIds.length) return;
+    await cloudinary.api.delete_resources(publicIds);
+    this.logger.log(`Deleted ${publicIds.length} Cloudinary assets`);
   }
 }
-

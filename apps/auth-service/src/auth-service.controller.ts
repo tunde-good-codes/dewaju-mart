@@ -1,4 +1,20 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import {
+  Body,
+  Controller,
+  FileTypeValidator,
+  Get,
+  HttpCode,
+  HttpStatus,
+  MaxFileSizeValidator,
+  ParseFilePipe,
+  Patch,
+  Post,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
 import { AuthService } from "./auth-service.service";
 import { CreateUserDto, VerifyOtpDto } from "./dtos/create-user-dto";
 import { ResponseMessage } from "libs/decorator/response.message.decorator";
@@ -13,6 +29,8 @@ import {
   ResendOtpDto,
   ResetPasswordDto,
 } from "./dtos/password-reset.dto";
+import { UpdateUserDto } from "./dtos/update-user.dto";
+import { memoryStorage } from "multer";
 
 @Controller()
 export class AuthServiceController {
@@ -84,7 +102,7 @@ export class AuthServiceController {
   @Post("reset-password")
   @ResponseMessage("password reset successfully")
   async resetPassword(@Body() dto: ResetPasswordDto) {
-   return await this.authService.resetPassword(dto);
+    return await this.authService.resetPassword(dto);
   }
 
   @Post("change-password")
@@ -94,34 +112,64 @@ export class AuthServiceController {
     return await this.authService.changePassword(req.user.id, dto);
   }
 
+  @Post("logout")
+  @UseGuards(JwtAuthGuard)
+  @ResponseMessage("logged out successfully")
+  async logout(@Req() req) {
+    // const token = req.headers.authorization.replace("Bearer ", "");
+    return this.authService.logout(req.user.id);
+  }
 
+  @Post("logout-all")
+  @UseGuards(JwtAuthGuard)
+  @ResponseMessage("logged out from all devices")
+  async logoutAll(@Req() req) {
+    // const token = req.headers.authorization.replace("Bearer ", "");
+    return this.authService.logoutAll(req.user.id);
+  }
 
+  @Post("refresh-token")
+  @ResponseMessage("tokens refreshed successfully")
+  async refreshToken(@Body() dto: RefreshTokenDto) {
+    return this.authService.refreshToken(dto.refreshToken);
+  }
 
-@Post("logout")
-@UseGuards(JwtAuthGuard)
-@ResponseMessage("logged out successfully")
-async logout(@Req() req) {
-  // const token = req.headers.authorization.replace("Bearer ", "");
-  return this.authService.logout(req.user.id);
-}
+  @Post("resend-otp")
+  @ResponseMessage("otp resent successfully")
+  async resendOtp(@Body() dto: ResendOtpDto) {
+    return this.authService.resendOtp(dto.email, dto.type);
+  }
 
-@Post("logout-all")
-@UseGuards(JwtAuthGuard)
-@ResponseMessage("logged out from all devices")
-async logoutAll(@Req() req) {
- // const token = req.headers.authorization.replace("Bearer ", "");
-  return this.authService.logoutAll(req.user.id);
-}
+  @Patch("me")
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ResponseMessage("user data updated successfully")
+  async updateProfile(@Req() req, @Body() dto: UpdateUserDto) {
+    return this.authService.updateUserProfile(req.user.id, dto);
+  }
 
-@Post("refresh-token")
-@ResponseMessage("tokens refreshed successfully")
-async refreshToken(@Body() dto: RefreshTokenDto) {
-  return this.authService.refreshToken(dto.refreshToken);
-}
-
-@Post("resend-otp")
-@ResponseMessage("otp resent successfully")
-async resendOtp(@Body() dto: ResendOtpDto) {
-  return this.authService.resendOtp(dto.email, dto.type);
-}
+  @ResponseMessage("user profile image updated successfully")
+  @Post("me/avatar")
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+    })
+  )
+  async uploadAvatar(
+    @Req() req,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5 MB
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      })
+    )
+    file: Express.Multer.File
+  ) {
+    return this.authService.uploadUserImage(req.user.id, file);
+  }
 }

@@ -46,6 +46,8 @@ export class User {
   })
   imageUrl?: string;
 
+  @Column({ nullable: true, select: false })
+  imagePublicId?: string;
   @Column({
     type: "varchar",
     nullable: true,

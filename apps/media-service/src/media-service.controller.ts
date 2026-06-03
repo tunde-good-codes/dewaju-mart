@@ -1,47 +1,52 @@
-import {
-  Controller,
-  Post,
-  Delete,
-  Body,
-  UploadedFile,
-  UploadedFiles,
-  UseInterceptors,
-  BadRequestException,
-} from "@nestjs/common";
-import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
+import { Controller, Logger } from "@nestjs/common";
+import { MessagePattern, Payload, EventPattern } from "@nestjs/microservices";
 import { MediaService } from "./media-service.service";
-import { multerConfig } from "./multer.config";
+import type{
+  UploadSinglePayload,
+  UploadMultiplePayload,
+  DeleteMediaPayload,
+} from "./media.types";
+import { KAFKA_TOPICS } from "@app/kafka";
 
-@Controller("media")
-export class MediaServiceController {
+@Controller()
+export class MediaController {
+  private readonly logger = new Logger(MediaController.name);
+
   constructor(private readonly mediaService: MediaService) {}
 
-  @Post("upload/single")
-  @UseInterceptors(FileInterceptor("file", multerConfig))
-  async uploadSingle(
-    @UploadedFile() file: Express.Multer.File,
-    @Body("subfolder") subfolder: string = "general"
-  ) {
-    if (!file) throw new BadRequestException("No file provided");
-    return this.mediaService.uploadSingle(file, subfolder);
+  /**
+   * RPC — caller awaits the reply.
+   * Used by user-service (avatar upload) and product-service (product images).
+   */
+  @MessagePattern(KAFKA_TOPICS.UPLOAD_SINGLE_USER_IMAGE)
+  async handleUploadSingle(@Payload() payload: UploadSinglePayload) {
+    this.logger.log(
+      `Received single upload request [correlationId: ${payload.correlationId}]`
+    );
+    return this.mediaService.uploadSingle(payload);
   }
 
-  @Post("upload/multiple")
-  @UseInterceptors(FilesInterceptor("files", 4, multerConfig))
-  async uploadMultiple(
-    @UploadedFiles() files: Express.Multer.File[],
-    @Body("subfolder") subfolder: string = "general"
-  ) {
-    if (!files || files.length === 0) {
-      throw new BadRequestException("No files provided");
-    }
-    return this.mediaService.uploadMultiple(files, subfolder);
+  /**
+   * RPC — caller awaits the reply.
+   * Used by product-service during product creation (up to 4 images).
+   */
+  @MessagePattern(KAFKA_TOPICS.UPLOAD_MULTIPLE_IMAGE)
+  async handleUploadMultiple(@Payload() payload: UploadMultiplePayload) {
+    this.logger.log(
+      `Received multiple upload request [correlationId: ${payload.correlationId}] — ${payload.files.length} file(s)`
+    );
+    return this.mediaService.uploadMultiple(payload);
   }
 
-  // Delete image by url
-  @Delete("delete")
-  async deleteImage(@Body("imageUrl") imageUrl: string) {
-    if (!imageUrl) throw new BadRequestException("imageUrl is required");
-    return this.mediaService.deleteImage(imageUrl);
+  /**
+   * Fire-and-forget — no reply needed.
+   * Used when replacing images (old public IDs must be cleaned from Cloudinary).
+   */
+  @EventPattern(KAFKA_TOPICS.MEDIA_DELETE)
+  async handleDelete(@Payload() payload: DeleteMediaPayload) {
+    this.logger.log(
+      `Received delete request for ${payload.publicIds.length} asset(s)`
+    );
+    await this.mediaService.deleteMedia(payload);
   }
 }

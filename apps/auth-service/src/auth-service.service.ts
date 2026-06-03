@@ -29,6 +29,14 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
 } from "./dtos/password-reset.dto";
+import { UpdateUserDto } from "./dtos/update-user.dto";
+import {
+  MEDIA_FOLDERS,
+  UploadSinglePayload,
+  UploadSingleResult,
+} from "apps/media-service/src/media.types";
+import { v4 as uuid } from "uuid";
+import { firstValueFrom } from "rxjs";
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -46,6 +54,10 @@ export class AuthService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    this.kafkaClient.subscribeToResponseOf(
+      KAFKA_TOPICS.UPLOAD_SINGLE_USER_IMAGE
+    );
+
     await this.kafkaClient.connect();
     this.logger.log("Auth service Kafka broker connection bound successfully");
   }
@@ -267,10 +279,6 @@ export class AuthService implements OnModuleInit {
     };
   }
 
-
-  async updateUserData(){
-    
-  }
   async resetPassword(dto: ResetPasswordDto) {
     const redisKey = `forget-password:${dto.email}`;
 
@@ -350,6 +358,9 @@ export class AuthService implements OnModuleInit {
       password: hashPassword,
       refreshToken: null,
     });
+
+
+    return { message: 'Password changed successfully' };
   }
   getHello(): string {
     return "Hello World!";
@@ -370,7 +381,7 @@ export class AuthService implements OnModuleInit {
         firstName: googleUserData.firstName,
         lastName: googleUserData.lastName,
         imageUrl: googleUserData.imageUrl,
-        googleId:googleUserData.googleId,
+        googleId: googleUserData.googleId,
         provider: AuthProvider.GOOGLE,
       });
 
@@ -385,10 +396,15 @@ export class AuthService implements OnModuleInit {
     } else {
       // if there is user, update the user imageUrl
 
-      if (googleUserData.imageUrl && user.imageUrl !== googleUserData.imageUrl)
+      if (
+        googleUserData.imageUrl &&
+        user.imageUrl !== googleUserData.imageUrl
+      ) {
+        await this.userRepository.update(user.id, {
+          imageUrl: googleUserData.imageUrl,
+        });
         user.imageUrl = googleUserData.imageUrl;
-
-      await this.userRepository.save(user);
+      }
     }
 
     const { accessToken, refreshToken } = await this.generateTokens(
@@ -617,8 +633,7 @@ export class AuthService implements OnModuleInit {
       isVerified: true,
     });
 
-
-    await this.cacheManager.del(redisKey)
+    await this.cacheManager.del(redisKey);
     return `email verification process completed`;
   }
 
@@ -637,6 +652,90 @@ export class AuthService implements OnModuleInit {
     return { message: "Logged out from all devices successfully" };
   }
 
+  async updateUserProfile(userId: string, dto: UpdateUserDto): Promise<User> {
+    const user = await this.findById(userId);
+
+    if (user.provider === AuthProvider.GOOGLE) {
+      throw new ForbiddenException(
+        "Google accounts cannot update profile data here. Manage via Google."
+      );
+    }
+
+    const updated = this.userRepository.merge(user, dto);
+    return this.userRepository.save(updated);
+  }
+
+  async uploadUserImage(
+    userId: string,
+    file: Express.Multer.File
+  ): Promise<User> {
+    const user = await this.userRepository
+      .createQueryBuilder("user")
+      .addSelect("user.imagePublicId")
+      .where("user.id = :userId", { userId })
+      .getOne();
+
+    if (!user) throw new NotFoundException("User not found");
+
+    if (user.provider === AuthProvider.GOOGLE) {
+      throw new ForbiddenException(
+        "Google accounts cannot upload a custom avatar."
+      );
+    }
+
+    const correlationId = uuid();
+
+    const payload: UploadSinglePayload = {
+      buffer: file.buffer.toString("base64"),
+      mimetype: file.mimetype,
+      originalName: file.originalname,
+      folder: MEDIA_FOLDERS.USER_AVATARS,
+      correlationId,
+    };
+
+    this.logger.log(
+      `Sending avatar upload to media-service [correlationId: ${correlationId}]`
+    );
+
+    let result: UploadSingleResult;
+
+    try {
+      result = await firstValueFrom(
+        this.kafkaClient.send<UploadSingleResult>(
+          KAFKA_TOPICS.UPLOAD_SINGLE_USER_IMAGE,
+          payload
+        )
+      );
+    } catch (err) {
+      this.logger.error("Media service did not respond in time", err);
+      throw new BadRequestException(
+        "Image upload timed out. Please try again."
+      );
+    }
+
+    if (!result.success) {
+      throw new BadRequestException(`Image upload failed: ${result.error}`);
+    }
+
+    if (user.imagePublicId) {
+      this.kafkaClient.emit(KAFKA_TOPICS.MEDIA_DELETE, {
+        publicIds: [user.imagePublicId],
+      });
+    }
+
+    user.imageUrl = result.url;
+    user.imagePublicId = result.publicId;
+
+    return this.userRepository.save(user);
+  }
+
+  async findById(id: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) throw new NotFoundException("User not found");
+    return user;
+  }
+
+  private  findByIdOrFail = this.findById
   private async generateTokens(
     userId: string,
     email: string,
