@@ -18,6 +18,8 @@ import {
   ResendOtpDto,
   ResetPasswordDto,
 } from "apps/auth-service/src/dtos/password-reset.dto";
+import { UpdateUserDto } from "apps/auth-service/src/dtos/update-user.dto";
+import FormData from "form-data";
 
 @Injectable()
 export class AuthService {
@@ -188,6 +190,40 @@ export class AuthService {
     }
   }
 
+  async updateUserData(token: string, data: UpdateUserDto) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.patch(`${this.authServer}/me`, data, {
+          headers: {
+            Authorization: token,
+          },
+        })
+      );
+      return result.data;
+    } catch (error) {
+      this.handleAxiosError(error);
+    }
+  }
+  async updateUserImage(token: string, file: Express.Multer.File) {
+    const form = new FormData();
+    form.append("file", file.buffer, {
+      filename: file.originalname,
+      contentType: file.mimetype,
+    });
+    try {
+      const result = await firstValueFrom(
+        this.httpService.patch(`${this.authServer}/me/image`, file, {
+          headers: {
+            Authorization: token,
+            ...form.getHeaders(),
+          },
+        })
+      );
+      return result.data;
+    } catch (error) {
+      this.handleAxiosError(error);
+    }
+  }
   async resendOtp(dto: ResendOtpDto) {
     try {
       const result = await firstValueFrom(

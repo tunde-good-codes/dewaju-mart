@@ -9,6 +9,6 @@ export const KAFKA_TOPICS = {
   FORGOT_PASSWORD_OTP: "forgot-password-otp",
   VERIFY_EMAIL_OTP: "verify_email-otp",
   UPLOAD_SINGLE_USER_IMAGE: "upload-single-user-image",
-  UPLOAD_MULTIPLE_IMAGE: "upload-multiple-images",
+  UPLOAD_MULTIPLE_PRODUCT_IMAGE: "upload-multiple-product-images",
   MEDIA_DELETE:"media_delete"
 };

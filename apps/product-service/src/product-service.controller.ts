@@ -1,10 +1,30 @@
-import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  FileTypeValidator,
+  Get,
+  HttpCode,
+  HttpStatus,
+  MaxFileSizeValidator,
+  Param,
+  ParseFilePipe,
+  ParseUUIDPipe,
+  Post,
+  Req,
+  UploadedFiles,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
 import { ProductService } from "./product-service.service";
 import { CreateProductCategoryDto } from "./dtos/create-product-category.dto";
 import { JwtAuthGuard } from "apps/auth-service/src/guards/jwt-auth.guard";
 import { Roles } from "apps/auth-service/src/decorators/roles.decoraror";
 import { UserRole } from "apps/auth-service/src/entities/User";
 import { ResponseMessage } from "libs/decorator/response.message.decorator";
+import { CreateProductDto } from "./dtos/create-product-dto";
+import { FilesInterceptor } from "@nestjs/platform-express";
+import { memoryStorage } from "multer";
 
 @Controller()
 export class ProductServiceController {
@@ -21,5 +41,40 @@ export class ProductServiceController {
   @Roles(UserRole.ADMIN)
   async createCategory(@Body() dto: CreateProductCategoryDto) {
     return await this.productService.createProductCategory(dto);
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(
+    FilesInterceptor("files", 4, {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB per file
+    })
+  )
+  async createProduct(
+    @Req() req,
+    @Body() dto: CreateProductDto,
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      })
+    )
+    files: Express.Multer.File[]
+  ) {
+    return this.productService.createProduct(dto, files, req.user.id);
+  }
+
+  @Get(":id")
+  async getProduct(@Param("id", ParseUUIDPipe) id: string) {
+    return this.productService.findById(id);
+  }
+
+  @Delete(":id")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteProduct(@Param("id", ParseUUIDPipe) id: string) {
+    return this.productService.deleteProduct(id);
   }
 }

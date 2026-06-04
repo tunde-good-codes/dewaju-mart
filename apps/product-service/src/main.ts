@@ -32,7 +32,7 @@ async function bootstrap() {
     serviceName:"product-service", 
     prefix:"api/v1/products"
   })
-  await app.listen(SERVICES_PORT.PRODUCT_SERVICE ?? 3000);
+  await app.listen(SERVICES_PORT.PRODUCT_SERVICE ?? 3003);
   logger.log(`product service is running on port: ${SERVICES_PORT.PRODUCT_SERVICE}`)
 }
 bootstrap();

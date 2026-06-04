@@ -53,11 +53,12 @@ export class Product {
     type: "varchar",
   })
   categoryId: string;
-  @Column({
-    nullable: true,
-    type: "varchar",
-  })
-  imageUrl: string;
+
+  @Column("text", { array: true, default: {} })
+  imageUrls: string[];
+
+  @Column("text", { array: true, default: {}, select: false })
+  imagePublicIds: string[];
   @Column({
     nullable: true,
     type: "varchar",

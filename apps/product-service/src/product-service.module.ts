@@ -1,3 +1,4 @@
+import { KafkaModule } from "./../../../libs/kafka/src/kafka.module";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
@@ -29,7 +30,7 @@ import { JwtStrategy } from "../jwt.strategies";
     PassportModule.register({
       defaultStrategy: "jwt",
     }),
-
+    KafkaModule.register("product-service-group"),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -41,7 +42,6 @@ import { JwtStrategy } from "../jwt.strategies";
       }),
     }),
   ],
-
   controllers: [ProductServiceController],
 
   providers: [ProductService, JwtStrategy],

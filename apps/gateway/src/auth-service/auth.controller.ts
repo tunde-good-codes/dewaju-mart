@@ -1,4 +1,17 @@
-import { Body, Controller, Get, Headers, Post, Req, Res } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  FileTypeValidator,
+  Get,
+  Headers,
+  MaxFileSizeValidator,
+  ParseFilePipe,
+  Patch,
+  Post,
+  Req,
+  Res,
+  UploadedFile,
+} from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import {
   CreateUserDto,
@@ -12,6 +25,7 @@ import {
   ResendOtpDto,
   ResetPasswordDto,
 } from "apps/auth-service/src/dtos/password-reset.dto";
+import { UpdateUserDto } from "apps/auth-service/src/dtos/update-user.dto";
 
 @Controller("auth")
 export class AuthController {
@@ -54,14 +68,13 @@ export class AuthController {
   @Post("change-password")
   async changePassword(
     @Headers("authorization") token: string,
-    @Req() req,
     @Body() dto: ChangePasswordDto
   ) {
     const formattedToken = token.startsWith("Bearer ")
       ? token
       : `Bearer ${token}`;
 
-    return this.authService.changePassword(formattedToken,  dto);
+    return this.authService.changePassword(formattedToken, dto);
   }
 
   @Post("reset-password")
@@ -78,28 +91,52 @@ export class AuthController {
     return this.authService.loginUser(dto);
   }
 
+  @Post("logout")
+  async logout(@Headers("authorization") token: string) {
+    const formattedToken = token.startsWith("Bearer ")
+      ? token
+      : `Bearer ${token}`;
+    return this.authService.logout(formattedToken);
+  }
 
+  @Post("logout-all")
+  async logoutAll(@Headers("authorization") token: string) {
+    const formattedToken = token.startsWith("Bearer ")
+      ? token
+      : `Bearer ${token}`;
+    return this.authService.logoutAll(formattedToken);
+  }
 
+  @Post("refresh-token")
+  async refreshToken(@Body() dto: RefreshTokenDto) {
+    return this.authService.refreshToken(dto);
+  }
 
-@Post("logout")
-async logout(@Headers("authorization") token: string) {
-  const formattedToken = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
-  return this.authService.logout(formattedToken);
-}
+  @Post("resend-otp")
+  async resendOtp(@Body() dto: ResendOtpDto) {
+    return this.authService.resendOtp(dto);
+  }
 
-@Post("logout-all")
-async logoutAll(@Headers("authorization") token: string) {
-  const formattedToken = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
-  return this.authService.logoutAll(formattedToken);
-}
+  @Patch("me")
+  async updateUserData(@Headers("authorization") token: string, @Body() dto: UpdateUserDto) {
+    const formatToken = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+    return await this.authService.updateUserData(formatToken, dto);
+  }
 
-@Post("refresh-token")
-async refreshToken(@Body() dto: RefreshTokenDto) {
-  return this.authService.refreshToken(dto);
-}
-
-@Post("resend-otp")
-async resendOtp(@Body() dto: ResendOtpDto) {
-  return this.authService.resendOtp(dto);
-}
+  @Post("me/image")
+  async updateUserImage(
+    @Headers("authorization") token,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      })
+    )
+    file: Express.Multer.File
+  ) {
+    const formatToken = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+    return await this.authService.updateUserImage(formatToken, file);
+  }
 }

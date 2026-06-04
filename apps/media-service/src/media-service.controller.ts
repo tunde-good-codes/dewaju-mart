@@ -30,7 +30,7 @@ export class MediaController {
    * RPC — caller awaits the reply.
    * Used by product-service during product creation (up to 4 images).
    */
-  @MessagePattern(KAFKA_TOPICS.UPLOAD_MULTIPLE_IMAGE)
+  @MessagePattern(KAFKA_TOPICS.UPLOAD_MULTIPLE_PRODUCT_IMAGE)
   async handleUploadMultiple(@Payload() payload: UploadMultiplePayload) {
     this.logger.log(
       `Received multiple upload request [correlationId: ${payload.correlationId}] — ${payload.files.length} file(s)`

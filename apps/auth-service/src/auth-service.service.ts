@@ -662,7 +662,7 @@ export class AuthService implements OnModuleInit {
     }
 
     const updated = this.userRepository.merge(user, dto);
-    return this.userRepository.save(updated);
+    return  await  this.userRepository.save(updated);
   }
 
   async uploadUserImage(

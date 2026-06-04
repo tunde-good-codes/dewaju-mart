@@ -149,7 +149,7 @@ export class AuthServiceController {
   }
 
   @ResponseMessage("user profile image updated successfully")
-  @Post("me/avatar")
+  @Post("me/image")
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
@@ -158,7 +158,7 @@ export class AuthServiceController {
       limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
     })
   )
-  async uploadAvatar(
+  async uploadUserImage(
     @Req() req,
     @UploadedFile(
       new ParseFilePipe({
