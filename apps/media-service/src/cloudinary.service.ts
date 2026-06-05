@@ -11,7 +11,7 @@ export class CloudinaryService implements OnModuleInit {
 
   onModuleInit() {
     cloudinary.config({
-      cloud_name: this.configService.getOrThrow<string>('CLOUDINARY_CLOUD_NAME'),
+      cloud_name: this.configService.getOrThrow<string>('CLOUDINARY_NAME'),
       api_key: this.configService.getOrThrow<string>('CLOUDINARY_API_KEY'),
       api_secret: this.configService.getOrThrow<string>('CLOUDINARY_API_SECRET'),
     });

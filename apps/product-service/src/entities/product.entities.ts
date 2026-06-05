@@ -53,8 +53,7 @@ export class Product {
     type: "varchar",
   })
   categoryId: string;
-
-  @Column("text", { array: true, default: {} })
+  @Column({ type: "text", array: true, default: "{}" })
   imageUrls: string[];
 
   @Column("text", { array: true, default: {}, select: false })

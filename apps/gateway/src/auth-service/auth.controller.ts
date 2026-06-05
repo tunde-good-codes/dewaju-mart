@@ -11,6 +11,7 @@ import {
   Req,
   Res,
   UploadedFile,
+  UseInterceptors,
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import {
@@ -26,6 +27,8 @@ import {
   ResetPasswordDto,
 } from "apps/auth-service/src/dtos/password-reset.dto";
 import { UpdateUserDto } from "apps/auth-service/src/dtos/update-user.dto";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { memoryStorage } from "multer";
 
 @Controller("auth")
 export class AuthController {
@@ -124,6 +127,12 @@ export class AuthController {
   }
 
   @Post("me/image")
+  @UseInterceptors(
+      FileInterceptor("file", {
+        storage: memoryStorage(),
+        limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+      })
+    )
   async updateUserImage(
     @Headers("authorization") token,
     @UploadedFile(

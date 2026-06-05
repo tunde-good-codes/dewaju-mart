@@ -31,6 +31,6 @@ async function bootstrap() {
   });
   await app.listen(SERVICES_PORT.MEDIA_SERVICE);
 
-  logger.log("connected to media service");
+  logger.log(`connected to media service on port : ${SERVICES_PORT.MEDIA_SERVICE}`);
 }
 bootstrap();

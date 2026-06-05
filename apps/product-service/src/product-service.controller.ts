@@ -45,12 +45,15 @@ export class ProductServiceController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.ADMIN, UserRole.SELLER)
   @UseInterceptors(
     FilesInterceptor("files", 4, {
       storage: memoryStorage(),
       limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB per file
     })
   )
+  @ResponseMessage("product created successfully")
   async createProduct(
     @Req() req,
     @Body() dto: CreateProductDto,

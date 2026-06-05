@@ -212,7 +212,7 @@ export class AuthService {
     });
     try {
       const result = await firstValueFrom(
-        this.httpService.patch(`${this.authServer}/me/image`, file, {
+        this.httpService.post(`${this.authServer}/me/image`, form, {
           headers: {
             Authorization: token,
             ...form.getHeaders(),

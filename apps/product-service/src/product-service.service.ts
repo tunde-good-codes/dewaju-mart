@@ -37,13 +37,14 @@ export class ProductService implements OnModuleInit {
     private readonly kafkaClient: ClientKafka
   ) {}
 
-
   async onModuleInit() {
-      this.kafkaClient.subscribeToResponseOf(KAFKA_TOPICS.UPLOAD_MULTIPLE_PRODUCT_IMAGE);
+    this.kafkaClient.subscribeToResponseOf(
+      KAFKA_TOPICS.UPLOAD_MULTIPLE_PRODUCT_IMAGE
+    );
 
-    await  this.kafkaClient.connect()
+    await this.kafkaClient.connect();
 
-    this.logger.log("product service kafka connected")
+    this.logger.log("product service kafka connected");
   }
 
   private readonly logger = new Logger("product-service-logics");
@@ -78,7 +79,6 @@ export class ProductService implements OnModuleInit {
     files: Express.Multer.File[],
     sellerId: string
   ): Promise<Product> {
-    // ── Validate file count ────────────────────────────────────────────────
     if (!files || files.length === 0) {
       throw new BadRequestException("At least one product image is required.");
     }
@@ -89,7 +89,6 @@ export class ProductService implements OnModuleInit {
       );
     }
 
-    // ── Upload images via media-service (synchronous RPC) ─────────────────
     const correlationId = uuid();
 
     const payload: UploadMultiplePayload = {
@@ -116,7 +115,7 @@ export class ProductService implements OnModuleInit {
             KAFKA_TOPICS.UPLOAD_MULTIPLE_PRODUCT_IMAGE,
             payload
           )
-          .pipe(timeout(30000)) 
+          .pipe(timeout(30000))
       );
     } catch (err) {
       this.logger.error("Media service RPC timed out", err);
@@ -129,17 +128,18 @@ export class ProductService implements OnModuleInit {
       throw new BadRequestException(`Image upload failed: ${result.error}`);
     }
 
-    // ── Persist product with image URLs ───────────────────────────────────
-   const product = this.productRepository.create({
+    const product = this.productRepository.create({
       ...dto,
       sellerId,
       imageUrls: result.urls,
       imagePublicIds: result.publicIds,
     });
- 
+
     const saved = await this.productRepository.save(product);
-    this.logger.log(`Product created: ${saved.id} with ${result?.urls?.length} image(s)`);
- 
+    this.logger.log(
+      `Product created: ${saved.id} with ${result?.urls?.length} image(s)`
+    );
+
     return saved;
   }
 
