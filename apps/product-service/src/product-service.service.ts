@@ -19,6 +19,8 @@ import {
   MEDIA_FOLDERS,
   UploadMultiplePayload,
   UploadMultipleResult,
+  UploadSinglePayload,
+  UploadSingleResult,
 } from "apps/media-service/src/media.types";
 import { firstValueFrom, timeout } from "rxjs";
 import { KAFKA_SERVICE, KAFKA_TOPICS } from "@app/kafka";
@@ -49,7 +51,10 @@ export class ProductService implements OnModuleInit {
 
   private readonly logger = new Logger("product-service-logics");
 
-  async createProductCategory(dto: CreateProductCategoryDto) {
+  async createProductCategory(
+    dto: CreateProductCategoryDto,
+    image: Express.Multer.File
+  ) {
     const category = await this.categoryRepository.findOne({
       where: {
         name: dto.name,
@@ -61,10 +66,37 @@ export class ProductService implements OnModuleInit {
     if (category) {
       throw new ConflictException("category with this name already exist");
     }
+    const correlationId = uuid();
+    const payload: UploadSinglePayload = {
+      buffer: image.buffer.toString("base64"),
+      mimetype: image.mimetype,
+      originalName: image.originalname,
+      folder: MEDIA_FOLDERS.CATEGORY_IMAGES,
+      correlationId,
+    };
+    let result: UploadSingleResult;
+    try {
+      result = await firstValueFrom(
+        this.kafkaClient
+          .send(KAFKA_TOPICS.UPLOAD_SINGLE_USER_IMAGE, payload)
+          .pipe(timeout(30000))
+      );
+    } catch (error) {
+      this.logger.error(`error uploading product  category  image`);
 
+      throw new BadRequestException(error);
+    }
+
+    if (!result.success) {
+      throw new BadRequestException(
+        "uploading product category image was unsuccessful"
+      );
+    }
     const newCategory = this.categoryRepository.create({
       name: dto.name,
       slug,
+      imageUrl: result.url,
+      imagePublicId:result.publicId
     });
 
     await this.categoryRepository.save(newCategory);

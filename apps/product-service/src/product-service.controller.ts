@@ -12,6 +12,7 @@ import {
   ParseUUIDPipe,
   Post,
   Req,
+  UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -23,7 +24,7 @@ import { Roles } from "apps/auth-service/src/decorators/roles.decoraror";
 import { UserRole } from "apps/auth-service/src/entities/User";
 import { ResponseMessage } from "libs/decorator/response.message.decorator";
 import { CreateProductDto } from "./dtos/create-product-dto";
-import { FilesInterceptor } from "@nestjs/platform-express";
+import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
 
 @Controller()
@@ -37,10 +38,29 @@ export class ProductServiceController {
 
   @Post("category")
   @ResponseMessage("a new product category been created")
+  @UseInterceptors(
+    FileInterceptor("image", {
+      storage: memoryStorage(),
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+    })
+  )
   @UseGuards(JwtAuthGuard)
   @Roles(UserRole.ADMIN)
-  async createCategory(@Body() dto: CreateProductCategoryDto) {
-    return await this.productService.createProductCategory(dto);
+  async createCategory(
+    @Body() dto: CreateProductCategoryDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5 MB
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      })
+    )
+    image: Express.Multer.File
+  ) {
+    return await this.productService.createProductCategory(dto, image);
   }
 
   @Post()

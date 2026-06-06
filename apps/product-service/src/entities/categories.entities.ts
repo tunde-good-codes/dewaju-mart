@@ -20,11 +20,20 @@ export class Category {
   })
   name: string;
 
-
   @Column({
-    type:"text", nullable:true
+    type: "text",
+    nullable: true,
   })
-  slug:string
+  imageUrl?: string;
+
+  
+  @Column({ nullable: true, select: false })
+  imagePublicId?: string;
+  @Column({
+    type: "text",
+    nullable: true,
+  })
+  slug: string;
   @Column({
     type: "text",
     nullable: true,
@@ -49,9 +58,8 @@ export class Category {
   })
   children: Category[];
 
-
-  @OneToMany(()=>Product, product => product.category, {
-    nullable:true,
+  @OneToMany(() => Product, (product) => product.category, {
+    nullable: true,
   })
-  products:Product[]
+  products: Product[];
 }

@@ -1,5 +1,5 @@
 export interface UploadSinglePayload {
-  buffer: string; // base64 encoded
+  buffer: string; 
   mimetype: string;
   originalName: string;
   folder: string;
@@ -38,6 +38,7 @@ export interface UploadMultipleResult {
 }
 
 export const MEDIA_FOLDERS = {
-  USER_AVATARS: 'users/avatars',
-  PRODUCT_IMAGES: 'products/images',
+  USER_AVATARS: "users/avatars",
+  PRODUCT_IMAGES: "products/images",
+  CATEGORY_IMAGES: "categories/images",
 } as const;

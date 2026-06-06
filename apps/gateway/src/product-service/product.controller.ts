@@ -8,6 +8,7 @@ import {
   MaxFileSizeValidator,
   ParseFilePipe,
   Post,
+  UploadedFile,
   UploadedFiles,
   UseInterceptors,
 } from "@nestjs/common";
@@ -22,9 +23,25 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post("category")
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+    })
+  )
   async createProductCategory(
     @Body() dto: CreateProductCategoryDto,
-    @Headers("authorization") token: string
+    @Headers("authorization") token: string,
+
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      })
+    )
+    image: Express.Multer.File
   ) {
     if (!token) {
       throw new BadRequestException("Authorization token missing");
@@ -33,7 +50,7 @@ export class ProductController {
     const formattedToken = token.startsWith("Bearer ")
       ? token
       : `Bearer ${token}`;
-    return await this.productService.createProductCategory(dto, formattedToken);
+    return await this.productService.createProductCategory(dto,image, formattedToken);
   }
 
   @Post()

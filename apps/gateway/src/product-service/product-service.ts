@@ -11,14 +11,30 @@ export class ProductService {
   constructor(private readonly httpService: HttpService) {}
   private readonly productServer = `http://localhost:${SERVICES_PORT.PRODUCT_SERVICE}/api/v1/products`;
   private readonly logger = new Logger("gateway-product");
-  async createProductCategory(data: CreateProductCategoryDto, token: string) {
+  async createProductCategory(
+    data: CreateProductCategoryDto,
+    image: Express.Multer.File,
+    token: string
+  ) {
+    const form = new FormData();
+
+    form.append("image", image.buffer, {
+      filename: image.filename,
+      contentType: image.mimetype,
+    });
+
     try {
       const result = await firstValueFrom(
-        this.httpService.post(`${this.productServer}/category`, data, {
-          headers: {
-            Authorization: token,
-          },
-        })
+        this.httpService.post(
+          `${this.productServer}/category`,
+          { data, form },
+          {
+            headers: {
+              Authorization: token,
+              ...form.getHeaders(),
+            },
+          }
+        )
       );
 
       return result.data;
@@ -45,20 +61,18 @@ export class ProductService {
       });
     });
 
-
-
-  Object.entries(dto).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      form.append(key, String(value));
-    }
-  });
+    Object.entries(dto).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        form.append(key, String(value));
+      }
+    });
 
     try {
       const result = await firstValueFrom(
         this.httpService.post(`${this.productServer}`, form, {
           headers: {
             Authorization: token,
-            ...form.getHeaders()
+            ...form.getHeaders(),
           },
         })
       );
