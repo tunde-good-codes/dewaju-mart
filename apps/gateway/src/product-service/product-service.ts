@@ -1,5 +1,10 @@
 import { HttpService } from "@nestjs/axios";
-import { HttpException, Injectable, Logger } from "@nestjs/common";
+import {
+  BadRequestException,
+  HttpException,
+  Injectable,
+  Logger,
+} from "@nestjs/common";
 import { CreateProductCategoryDto } from "apps/product-service/src/dtos/create-product-category.dto";
 import { CreateProductDto } from "apps/product-service/src/dtos/create-product-dto";
 import FormData from "form-data";
@@ -17,37 +22,53 @@ export class ProductService {
     token: string
   ) {
     const form = new FormData();
-
     form.append("image", image.buffer, {
-      filename: image.filename,
+      filename: image.originalname,
       contentType: image.mimetype,
+    });
+
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        form.append(key, String(value));
+      }
     });
 
     try {
       const result = await firstValueFrom(
-        this.httpService.post(
-          `${this.productServer}/category`,
-          { data, form },
-          {
-            headers: {
-              Authorization: token,
-              ...form.getHeaders(),
-            },
-          }
-        )
+        this.httpService.post(`${this.productServer}/category`, form, {
+          headers: {
+            Authorization: token,
+            ...form.getHeaders(),
+          },
+        })
       );
 
       return result.data;
     } catch (error) {
-      this.logger.error(`Error creating category: ${error.message}`);
+      const responseData = error?.response?.data;
+      const status = error?.response?.status || 500;
 
-      throw new HttpException(
-        error?.response?.data || "Internal server error",
-        error?.response?.status || 500
+      this.logger.error(
+        `Error creating category: ${JSON.stringify(responseData)}`
       );
+
+      throw new HttpException(responseData || "Internal server error", status);
     }
   }
-
+  async getAllCategories(token:string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.get(`${this.productServer}/category`, {
+          headers:{
+            Authorization:token
+          }
+        })
+      );
+      return result.data;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
   async createProduct(
     token: string,
     files: Express.Multer.File[],

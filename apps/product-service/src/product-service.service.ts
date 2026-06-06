@@ -43,6 +43,9 @@ export class ProductService implements OnModuleInit {
     this.kafkaClient.subscribeToResponseOf(
       KAFKA_TOPICS.UPLOAD_MULTIPLE_PRODUCT_IMAGE
     );
+    this.kafkaClient.subscribeToResponseOf(
+      KAFKA_TOPICS.UPLOAD_SINGLE_USER_IMAGE
+    );
 
     await this.kafkaClient.connect();
 
@@ -82,9 +85,11 @@ export class ProductService implements OnModuleInit {
           .pipe(timeout(30000))
       );
     } catch (error) {
-      this.logger.error(`error uploading product  category  image`);
-
-      throw new BadRequestException(error);
+      this.logger.error(
+        `Error uploading category image: ${error?.message}`,
+        error?.stack
+      );
+      throw new BadRequestException(error?.message || "Image upload failed");
     }
 
     if (!result.success) {
@@ -96,13 +101,25 @@ export class ProductService implements OnModuleInit {
       name: dto.name,
       slug,
       imageUrl: result.url,
-      imagePublicId:result.publicId
+      imagePublicId: result.publicId,
     });
 
     await this.categoryRepository.save(newCategory);
     this.logger.log("category created");
     return {
       newCategory,
+    };
+  }
+
+  async getAllCategories() {
+    const data = await this.categoryRepository.find({});
+
+    if (!data || data.length === 0) {
+      throw new NotFoundException("no categories found at the moment");
+    }
+
+    return {
+      data,
     };
   }
 
@@ -122,7 +139,9 @@ export class ProductService implements OnModuleInit {
     }
 
     const correlationId = uuid();
-
+    const slug = slugify(dto.name, {
+      lower: true,
+    });
     const payload: UploadMultiplePayload = {
       files: files.map((f) => ({
         buffer: f.buffer.toString("base64"),
@@ -162,6 +181,7 @@ export class ProductService implements OnModuleInit {
 
     const product = this.productRepository.create({
       ...dto,
+      slug,
       sellerId,
       imageUrls: result.urls,
       imagePublicIds: result.publicIds,

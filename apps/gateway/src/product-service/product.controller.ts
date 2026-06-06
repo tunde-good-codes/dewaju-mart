@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   FileTypeValidator,
+  Get,
   Head,
   Headers,
   MaxFileSizeValidator,
@@ -24,7 +25,7 @@ export class ProductController {
 
   @Post("category")
   @UseInterceptors(
-    FileInterceptor("file", {
+    FileInterceptor("image", {
       storage: memoryStorage(),
       limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
     })
@@ -50,9 +51,19 @@ export class ProductController {
     const formattedToken = token.startsWith("Bearer ")
       ? token
       : `Bearer ${token}`;
-    return await this.productService.createProductCategory(dto,image, formattedToken);
+    return await this.productService.createProductCategory(
+      dto,
+      image,
+      formattedToken
+    );
   }
 
+  @Get("category")
+  async getAllCategories(@Headers("authorization") token :string) {
+
+    const formattedToken = token.startsWith("Bearer ") ? token : `Bearer ${token}`
+    return await this.productService.getAllCategories(formattedToken);
+  }
   @Post()
   @UseInterceptors(
     FilesInterceptor("files", 4, {

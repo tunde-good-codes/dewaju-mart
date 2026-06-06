@@ -23,4 +23,8 @@ export class CreateProductDto {
   @IsUUID()
   @IsOptional()
   categoryId?: string;
+
+  
+    @IsOptional()
+    files: string[];
 }

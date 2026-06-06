@@ -15,16 +15,16 @@ async function bootstrap() {
   app.connectMicroservice({
     transport: Transport.KAFKA,
     options: {
-      clients: {
+      client: {
         brokers: ["localhost:9092"],
       },
       consumer: {
-        groupId: "product-service-group",
+        groupId: "media-service-group",
       },
     },
   });
 
-  app.startAllMicroservices();
+  await app.startAllMicroservices();
   configureGlobalSettings(app, {
     serviceName: "media-service",
     prefix: "api/v1/media",

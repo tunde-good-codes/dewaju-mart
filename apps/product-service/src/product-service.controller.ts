@@ -63,6 +63,13 @@ export class ProductServiceController {
     return await this.productService.createProductCategory(dto, image);
   }
 
+
+  @Get("category")
+  @UseGuards(JwtAuthGuard)
+  @ResponseMessage("all categories fetched")
+  async getAllCategories(){
+    return await this.productService.getAllCategories()
+  }
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard)
