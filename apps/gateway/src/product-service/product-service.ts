@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { CreateProductCategoryDto } from "apps/product-service/src/dtos/create-product-category.dto";
 import { CreateProductDto } from "apps/product-service/src/dtos/create-product-dto";
+import { ProductQueryDto } from "apps/product-service/src/dtos/product-query.dto";
 import FormData from "form-data";
 import { SERVICES_PORT } from "libs/shared/constants/services.constant";
 import { firstValueFrom } from "rxjs";
@@ -128,13 +129,17 @@ export class ProductService {
     }
   }
 
-  async getAllProduct( token: string) {
+  async getAllProduct( query:ProductQueryDto, token: string|null) {
     try {
       const result = await firstValueFrom(
-        this.httpService.get(`${this.productServer}`, {
+        this.httpService.get(`${this.productServer}`,  {
           headers: {
-            Authorization: token,
-          },
+
+
+...(token && {Authorization:token}
+),
+
+          },params:query
         })
       );
 

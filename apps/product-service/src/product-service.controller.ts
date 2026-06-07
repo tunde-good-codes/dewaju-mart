@@ -11,6 +11,7 @@ import {
   ParseFilePipe,
   ParseUUIDPipe,
   Post,
+  Query,
   Req,
   UploadedFile,
   UploadedFiles,
@@ -27,6 +28,7 @@ import { CreateProductDto } from "./dtos/create-product-dto";
 import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
 import { RolesGuard } from "apps/auth-service/src/guards/role.guard";
+import { ProductQueryDto } from "./dtos/product-query.dto";
 
 @Controller()
 export class ProductServiceController {
@@ -111,7 +113,7 @@ export class ProductServiceController {
   @Get()
   @ResponseMessage("product fetched")
   @HttpCode(HttpStatus.ACCEPTED)
-  async getAllProduct() {
-    return this.productService.findAllProduct();
+  async getAllProduct(@Query() query:ProductQueryDto) {
+    return this.productService.findAllProduct(query);
   }
 }

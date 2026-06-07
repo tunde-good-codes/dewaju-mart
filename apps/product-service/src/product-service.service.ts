@@ -26,6 +26,7 @@ import { firstValueFrom, timeout } from "rxjs";
 import { KAFKA_SERVICE, KAFKA_TOPICS } from "@app/kafka";
 import { ClientKafka } from "@nestjs/microservices";
 import e from "express";
+import { ProductQueryDto } from "./dtos/product-query.dto";
 
 const MAX_PRODUCT_IMAGES = 4;
 @Injectable()
@@ -156,7 +157,7 @@ export class ProductService implements OnModuleInit {
 
     const correlationId = uuid();
     const slug = slugify(normalizedName, { lower: true });
-    
+
     const payload: UploadMultiplePayload = {
       files: files.map((f) => ({
         buffer: f.buffer.toString("base64"),
@@ -196,7 +197,7 @@ export class ProductService implements OnModuleInit {
 
     const product = this.productRepository.create({
       ...dto,
-      name: normalizedName, 
+      name: normalizedName,
       slug,
       sellerId,
       imageUrls: result.urls,
@@ -210,9 +211,16 @@ export class ProductService implements OnModuleInit {
       );
       return saved;
     } catch (error: any) {
-      if (error.code === '23505' || error.message.includes('unique constraint')) {
-        this.logger.warn(`Duplicate product creation blocked via DB constraint for seller: ${sellerId}, name: ${normalizedName}`);
-        throw new ConflictException("You have already created a product with this name.");
+      if (
+        error.code === "23505" ||
+        error.message.includes("unique constraint")
+      ) {
+        this.logger.warn(
+          `Duplicate product creation blocked via DB constraint for seller: ${sellerId}, name: ${normalizedName}`
+        );
+        throw new ConflictException(
+          "You have already created a product with this name."
+        );
       }
       throw error;
     }
@@ -224,10 +232,50 @@ export class ProductService implements OnModuleInit {
     return product;
   }
 
-  async findAllProduct(): Promise<Product[]> {
-    const products = await this.productRepository.find({});
-    if (!products || products.length === 0) throw new NotFoundException("Product not found");
-    return products;
+  async findAllProduct(query: ProductQueryDto): Promise<{
+    data: Product[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+
+    const { limit = 10, page = 1, search, categoryId, sellerId } = query;
+
+    const skip = (page - 1) * limit;
+    const queryProduct = await this.productRepository
+      .createQueryBuilder("product")
+      .leftJoinAndSelect("product.category", "category")
+      .where("product.isDeleted = :isDeleted", { isDeleted: false })
+      .skip(skip)
+      .take(limit)
+      .orderBy("product.createdAt", "DESC");
+
+    if (categoryId) {
+      queryProduct.andWhere("product.categoryId = :categoryId", { categoryId });
+    }
+
+    if (sellerId) {
+      queryProduct.andWhere("product.sellerId = :sellerId", { sellerId });
+    }
+
+    if (search) {
+      queryProduct.andWhere("LOWER(product.name) LIKE LOWER(:search)", {
+        search: `%${search}%`,
+      });
+    }
+
+    const [data, total] = await queryProduct.getManyAndCount();
+
+    if (!data.length) throw new NotFoundException("No products found");
+
+    return {
+      data,
+      total,
+      page: Number(page),
+      limit: Number(page),
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async deleteProduct(id: string): Promise<void> {

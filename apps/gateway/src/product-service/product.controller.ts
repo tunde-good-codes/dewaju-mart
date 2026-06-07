@@ -11,6 +11,7 @@ import {
   Param,
   ParseFilePipe,
   Post,
+  Query,
   UploadedFile,
   UploadedFiles,
   UseInterceptors,
@@ -20,6 +21,7 @@ import { CreateProductCategoryDto } from "apps/product-service/src/dtos/create-p
 import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
 import { CreateProductDto } from "apps/product-service/src/dtos/create-product-dto";
+import { ProductQueryDto } from "apps/product-service/src/dtos/product-query.dto";
 
 @Controller("products")
 export class ProductController {
@@ -104,10 +106,10 @@ export class ProductController {
   }
 
   @Get()
-  async getProducts( @Headers("authorization") token: string) {
-    const formattedToken = token.startsWith("Bearer ")
+  async getProducts(@Query() query:ProductQueryDto, @Headers("authorization") token: string | null) {
+    const formattedToken = token ? token.startsWith("Bearer ")
       ? token
-      : `Bearer ${token}`;
-    return await this.productService.getAllProduct(formattedToken);
+      : `Bearer ${token}` : null;
+    return await this.productService.getAllProduct(query,formattedToken);
   }
 }
