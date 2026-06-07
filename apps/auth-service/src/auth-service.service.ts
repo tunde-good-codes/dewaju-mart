@@ -13,7 +13,7 @@ import {
 } from "@nestjs/common";
 import { ClientKafka } from "@nestjs/microservices";
 import { InjectRepository } from "@nestjs/typeorm";
-import { AuthProvider, User } from "./entities/User";
+import { AuthProvider, User, UserRole } from "./entities/User";
 import { Repository } from "typeorm";
 import { CreateUserDto, VerifyOtpDto } from "./dtos/create-user-dto";
 import { Cache, CACHE_MANAGER } from "@nestjs/cache-manager";
@@ -119,19 +119,21 @@ export class AuthService implements OnModuleInit {
       throw new ConflictException("OTP mismatched or invalid!");
     }
 
-    const { firstName, email, lastName, password } = registerUserData.userData;
+    const { firstName, email, lastName, password, role } = registerUserData.userData;
 
     let hashPassword;
     if (password) {
       hashPassword = await bcrypt.hash(password, 10);
     }
 
+
+
     const newUser = this.userRepository.create({
       firstName,
       email,
       lastName,
       password: hashPassword,
-      isVerified: true,
+      isVerified: true, role :role as UserRole 
     });
 
     await this.userRepository.save(newUser);

@@ -26,15 +26,12 @@ import { ResponseMessage } from "libs/decorator/response.message.decorator";
 import { CreateProductDto } from "./dtos/create-product-dto";
 import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
+import { RolesGuard } from "apps/auth-service/src/guards/role.guard";
 
 @Controller()
 export class ProductServiceController {
   constructor(private readonly productService: ProductService) {}
 
-  @Get()
-  getHello(): string {
-    return this.productService.getHello();
-  }
 
   @Post("category")
   @ResponseMessage("a new product category been created")
@@ -63,16 +60,15 @@ export class ProductServiceController {
     return await this.productService.createProductCategory(dto, image);
   }
 
-
   @Get("category")
   @UseGuards(JwtAuthGuard)
   @ResponseMessage("all categories fetched")
-  async getAllCategories(){
-    return await this.productService.getAllCategories()
+  async getAllCategories() {
+    return await this.productService.getAllCategories();
   }
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SELLER)
   @UseInterceptors(
     FilesInterceptor("files", 4, {
@@ -94,6 +90,8 @@ export class ProductServiceController {
     )
     files: Express.Multer.File[]
   ) {
+    console.log(req.user);
+
     return this.productService.createProduct(dto, files, req.user.id);
   }
 
@@ -103,8 +101,17 @@ export class ProductServiceController {
   }
 
   @Delete(":id")
+  @ResponseMessage("product deleted")
   @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async deleteProduct(@Param("id", ParseUUIDPipe) id: string) {
     return this.productService.deleteProduct(id);
+  }
+
+  @Get()
+  @ResponseMessage("product fetched")
+  @HttpCode(HttpStatus.ACCEPTED)
+  async getAllProduct() {
+    return this.productService.findAllProduct();
   }
 }

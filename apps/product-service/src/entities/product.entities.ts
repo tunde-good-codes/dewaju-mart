@@ -56,7 +56,7 @@ export class Product {
   @Column({ type: "text", array: true, default: "{}" })
   imageUrls: string[];
 
-  @Column("text", { array: true, default: {}, select: false })
+  @Column("text", { array: true, default: "{}", select: false })
   imagePublicIds: string[];
   @Column({
     nullable: true,

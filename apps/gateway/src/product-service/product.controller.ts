@@ -2,11 +2,13 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   FileTypeValidator,
   Get,
   Head,
   Headers,
   MaxFileSizeValidator,
+  Param,
   ParseFilePipe,
   Post,
   UploadedFile,
@@ -59,9 +61,10 @@ export class ProductController {
   }
 
   @Get("category")
-  async getAllCategories(@Headers("authorization") token :string) {
-
-    const formattedToken = token.startsWith("Bearer ") ? token : `Bearer ${token}`
+  async getAllCategories(@Headers("authorization") token: string) {
+    const formattedToken = token.startsWith("Bearer ")
+      ? token
+      : `Bearer ${token}`;
     return await this.productService.getAllCategories(formattedToken);
   }
   @Post()
@@ -90,5 +93,21 @@ export class ProductController {
       ? token
       : `Bearer ${token}`;
     return await this.productService.createProduct(formattedToken, files, dto);
+  }
+
+  @Delete(":id")
+  async deleteProduct(@Param("id") id: string, @Headers("authorization") token: string) {
+    const formattedToken = token.startsWith("Bearer ")
+      ? token
+      : `Bearer ${token}`;
+    return await this.productService.deleteProduct(id, formattedToken);
+  }
+
+  @Get()
+  async getProducts( @Headers("authorization") token: string) {
+    const formattedToken = token.startsWith("Bearer ")
+      ? token
+      : `Bearer ${token}`;
+    return await this.productService.getAllProduct(formattedToken);
   }
 }

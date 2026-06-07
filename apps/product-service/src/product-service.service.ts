@@ -25,6 +25,7 @@ import {
 import { firstValueFrom, timeout } from "rxjs";
 import { KAFKA_SERVICE, KAFKA_TOPICS } from "@app/kafka";
 import { ClientKafka } from "@nestjs/microservices";
+import e from "express";
 
 const MAX_PRODUCT_IMAGES = 4;
 @Injectable()
@@ -138,10 +139,24 @@ export class ProductService implements OnModuleInit {
       );
     }
 
-    const correlationId = uuid();
-    const slug = slugify(dto.name, {
-      lower: true,
+    const normalizedName = dto.name.trim();
+
+    const existingProduct = await this.productRepository.findOne({
+      where: {
+        name: normalizedName,
+        sellerId,
+      },
     });
+
+    if (existingProduct) {
+      throw new ConflictException(
+        "You have already created a product with this name."
+      );
+    }
+
+    const correlationId = uuid();
+    const slug = slugify(normalizedName, { lower: true });
+    
     const payload: UploadMultiplePayload = {
       files: files.map((f) => ({
         buffer: f.buffer.toString("base64"),
@@ -181,24 +196,38 @@ export class ProductService implements OnModuleInit {
 
     const product = this.productRepository.create({
       ...dto,
+      name: normalizedName, 
       slug,
       sellerId,
       imageUrls: result.urls,
       imagePublicIds: result.publicIds,
     });
 
-    const saved = await this.productRepository.save(product);
-    this.logger.log(
-      `Product created: ${saved.id} with ${result?.urls?.length} image(s)`
-    );
-
-    return saved;
+    try {
+      const saved = await this.productRepository.save(product);
+      this.logger.log(
+        `Product created: ${saved.id} with ${result?.urls?.length} image(s)`
+      );
+      return saved;
+    } catch (error: any) {
+      if (error.code === '23505' || error.message.includes('unique constraint')) {
+        this.logger.warn(`Duplicate product creation blocked via DB constraint for seller: ${sellerId}, name: ${normalizedName}`);
+        throw new ConflictException("You have already created a product with this name.");
+      }
+      throw error;
+    }
   }
 
   async findById(id: string): Promise<Product> {
     const product = await this.productRepository.findOne({ where: { id } });
     if (!product) throw new NotFoundException("Product not found");
     return product;
+  }
+
+  async findAllProduct(): Promise<Product[]> {
+    const products = await this.productRepository.find({});
+    if (!products || products.length === 0) throw new NotFoundException("Product not found");
+    return products;
   }
 
   async deleteProduct(id: string): Promise<void> {
@@ -220,6 +249,6 @@ export class ProductService implements OnModuleInit {
     await this.productRepository.remove(product);
   }
   getHello(): string {
-    return "Hello World!";
+    return "Hello Worldie!";
   }
 }

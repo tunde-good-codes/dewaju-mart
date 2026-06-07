@@ -55,13 +55,13 @@ export class ProductService {
       throw new HttpException(responseData || "Internal server error", status);
     }
   }
-  async getAllCategories(token:string) {
+  async getAllCategories(token: string) {
     try {
       const result = await firstValueFrom(
         this.httpService.get(`${this.productServer}/category`, {
-          headers:{
-            Authorization:token
-          }
+          headers: {
+            Authorization: token,
+          },
         })
       );
       return result.data;
@@ -106,6 +106,42 @@ export class ProductService {
         error?.response?.data || "Internal server error",
         error?.response?.status || 500
       );
+    }
+  }
+
+  async deleteProduct(id: string, token: string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.delete(`${this.productServer}/${id}`, {
+          headers: {
+            Authorization: token,
+          },
+        })
+      );
+
+      return result.data;
+    } catch (error) {
+
+      throw new BadRequestException(
+        error?.response?.data || "Internal server error",
+        error?.response?.status || 500);
+    }
+  }
+
+  async getAllProduct( token: string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.get(`${this.productServer}`, {
+          headers: {
+            Authorization: token,
+          },
+        })
+      );
+
+      return result.data;
+    } catch (error) {
+      const response = error?.response?.data
+      throw new BadRequestException("error getting product: " + response);
     }
   }
 }
