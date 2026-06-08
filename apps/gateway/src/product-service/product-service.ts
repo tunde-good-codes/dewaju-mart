@@ -150,7 +150,7 @@ export class ProductService {
   async getMyProducts(query: ProductQueryDto, token: string) {
     try {
       const result = await firstValueFrom(
-        this.httpService.get(`${this.productServer}/my-product`, {
+        this.httpService.get(`${this.productServer}/my-products`, {
           headers: {
             Authorization: token,
           },
@@ -161,24 +161,55 @@ export class ProductService {
       return result.data;
     } catch (error) {
       const response = error?.response?.data;
-      throw new BadRequestException("error getting my product: " + response);
+      const status = error?.response?.status || 500;
+      this.logger.error(
+        `Error getting product categories: ${JSON.stringify(response)}`
+      );
+      throw new HttpException(
+        response || "Error getting product categories",
+        status
+      );
     }
   }
-  async getMyProductsCategory(query: ProductQueryDto, token: string) {
+
+  async getSingleProduct(id: string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.get(`${this.productServer}/${id}`)
+      );
+      return result.data;
+    } catch (error) {
+      const response = error.response.data;
+      const status = error.response.status;
+      this.logger.error(
+        `error getting a single product: ${JSON.stringify(response)}`
+      );
+
+      throw new HttpException(
+        response || "error getting single product",
+        status
+      );
+    }
+  }
+
+  async getProductsCategory(query: ProductQueryDto) {
     try {
       const result = await firstValueFrom(
         this.httpService.get(`${this.productServer}/categories`, {
-          headers: {
-            Authorization: token,
-          },
           params: query,
         })
       );
-
       return result.data;
     } catch (error) {
       const response = error?.response?.data;
-      throw new BadRequestException("error getting product categories: " + response);
+      const status = error?.response?.status || 500;
+      this.logger.error(
+        `Error getting product categories: ${JSON.stringify(response)}`
+      );
+      throw new HttpException(
+        response || "Error getting product categories",
+        status
+      );
     }
   }
 }

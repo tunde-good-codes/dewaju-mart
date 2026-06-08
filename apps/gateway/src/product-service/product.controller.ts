@@ -69,6 +69,11 @@ export class ProductController {
       : `Bearer ${token}`;
     return await this.productService.getAllCategories(formattedToken);
   }
+
+  @Get("categories")
+  async getProductsCategory(@Query() query: ProductQueryDto) {
+    return await this.productService.getProductsCategory(query);
+  }
   @Post()
   @UseInterceptors(
     FilesInterceptor("files", 4, {
@@ -123,25 +128,16 @@ export class ProductController {
   @Get("my-products")
   async getMyProducts(
     @Query() query: ProductQueryDto,
-    @Headers("authorization") token: string | null
+    @Headers("authorization") token: string
   ) {
-    const formattedToken = token
-      ? token.startsWith("Bearer ")
-        ? token
-        : `Bearer ${token}`
-      : null;
-    return await this.productService.getAllProduct(query, formattedToken);
+    const formattedToken = token.startsWith("Bearer ")
+      ? token
+      : `Bearer ${token}`;
+    return await this.productService.getMyProducts(query, formattedToken);
   }
-  @Get()
-  async getProductsCategory(
-    @Query() query: ProductQueryDto,
-    @Headers("authorization") token: string | null
-  ) {
-    const formattedToken = token
-      ? token.startsWith("Bearer ")
-        ? token
-        : `Bearer ${token}`
-      : null;
-    return await this.productService.getAllProduct(query, formattedToken);
+
+  @Get(":id")
+  async singleProduct(@Param("id") id: string) {
+    return await this.productService.getSingleProduct(id);
   }
 }

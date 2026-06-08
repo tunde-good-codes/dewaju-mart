@@ -69,6 +69,12 @@ export class ProductServiceController {
   async getAllCategories() {
     return await this.productService.getAllCategories();
   }
+
+  @Get("categories")
+  @ResponseMessage("all product of this  category fetched")
+  async getProductsByCategory(@Query() query: ProductQueryDto) {
+    return this.productService.findProductByCategory(query);
+  }
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -98,11 +104,6 @@ export class ProductServiceController {
     return this.productService.createProduct(dto, files, req.user.id);
   }
 
-  @Get(":id")
-  async getProduct(@Param("id", ParseUUIDPipe) id: string) {
-    return this.productService.findById(id);
-  }
-
   @Delete(":id")
   @ResponseMessage("product deleted")
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -125,12 +126,6 @@ export class ProductServiceController {
     return this.productService.findMyProduct(query, req.user.id);
   }
 
-  @Get("categories")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
-  async getProductsByCategory( @Query() query: ProductQueryDto) {
-    return this.productService.findProductByCategory(query);
-  }
   @Patch(":id")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SELLER, UserRole.ADMIN)
@@ -157,5 +152,11 @@ export class ProductServiceController {
     files?: Express.Multer.File[]
   ) {
     return this.productService.updateProduct(id, req.user.id, dto, files);
+  }
+
+  @ResponseMessage("product fetched successfully")
+  @Get(":id")
+  async getProduct(@Param("id", ParseUUIDPipe) id: string) {
+    return this.productService.findById(id);
   }
 }

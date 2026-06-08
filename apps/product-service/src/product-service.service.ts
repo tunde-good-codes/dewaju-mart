@@ -278,11 +278,28 @@ export class ProductService implements OnModuleInit {
     };
   }
 
+  async getSingleProduct(productId: string) {
+    const product = await this.productRepository.findOne({
+      where: {
+        id: productId,
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException("no product found!");
+    }
+    return {
+      product
+    };
+  }
   async findMyProduct(query: ProductQueryDto, sellerId: string) {
     return await this.findAllProduct({ ...query, sellerId: sellerId });
   }
   async findProductByCategory(query: ProductQueryDto) {
-    return await this.findAllProduct({ ...query, categoryId: query.categoryId });
+    return await this.findAllProduct({
+      ...query,
+      categoryId: query.categoryId,
+    });
   }
 
   async updateProduct(
