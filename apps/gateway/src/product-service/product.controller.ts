@@ -98,7 +98,10 @@ export class ProductController {
   }
 
   @Delete(":id")
-  async deleteProduct(@Param("id") id: string, @Headers("authorization") token: string) {
+  async deleteProduct(
+    @Param("id") id: string,
+    @Headers("authorization") token: string
+  ) {
     const formattedToken = token.startsWith("Bearer ")
       ? token
       : `Bearer ${token}`;
@@ -106,10 +109,39 @@ export class ProductController {
   }
 
   @Get()
-  async getProducts(@Query() query:ProductQueryDto, @Headers("authorization") token: string | null) {
-    const formattedToken = token ? token.startsWith("Bearer ")
-      ? token
-      : `Bearer ${token}` : null;
-    return await this.productService.getAllProduct(query,formattedToken);
+  async getProducts(
+    @Query() query: ProductQueryDto,
+    @Headers("authorization") token: string | null
+  ) {
+    const formattedToken = token
+      ? token.startsWith("Bearer ")
+        ? token
+        : `Bearer ${token}`
+      : null;
+    return await this.productService.getAllProduct(query, formattedToken);
+  }
+  @Get("my-products")
+  async getMyProducts(
+    @Query() query: ProductQueryDto,
+    @Headers("authorization") token: string | null
+  ) {
+    const formattedToken = token
+      ? token.startsWith("Bearer ")
+        ? token
+        : `Bearer ${token}`
+      : null;
+    return await this.productService.getAllProduct(query, formattedToken);
+  }
+  @Get()
+  async getProductsCategory(
+    @Query() query: ProductQueryDto,
+    @Headers("authorization") token: string | null
+  ) {
+    const formattedToken = token
+      ? token.startsWith("Bearer ")
+        ? token
+        : `Bearer ${token}`
+      : null;
+    return await this.productService.getAllProduct(query, formattedToken);
   }
 }

@@ -1,6 +1,7 @@
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -32,8 +33,6 @@ export class Product {
   slug: string;
   @Column({ type: "decimal", precision: 10, scale: 2 })
   price: number;
-  @Column({ default: false })
-  isDeleted: boolean;
 
   @Column({
     type: "int",
@@ -54,7 +53,7 @@ export class Product {
   })
   categoryId: string;
   @Column({ type: "text", array: true, default: "{}" })
-  imageUrls: string[];
+  imageUrls: string[] ;
 
   @Column("text", { array: true, default: "{}", select: false })
   imagePublicIds: string[];
@@ -69,4 +68,7 @@ export class Product {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt: Date;
 }

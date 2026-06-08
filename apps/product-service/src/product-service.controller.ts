@@ -10,6 +10,7 @@ import {
   Param,
   ParseFilePipe,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   Req,
@@ -29,11 +30,11 @@ import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
 import { RolesGuard } from "apps/auth-service/src/guards/role.guard";
 import { ProductQueryDto } from "./dtos/product-query.dto";
+import { UpdateProductDto } from "./dtos/update-product-dto";
 
 @Controller()
 export class ProductServiceController {
   constructor(private readonly productService: ProductService) {}
-
 
   @Post("category")
   @ResponseMessage("a new product category been created")
@@ -113,7 +114,48 @@ export class ProductServiceController {
   @Get()
   @ResponseMessage("product fetched")
   @HttpCode(HttpStatus.ACCEPTED)
-  async getAllProduct(@Query() query:ProductQueryDto) {
+  async getAllProduct(@Query() query: ProductQueryDto) {
     return this.productService.findAllProduct(query);
+  }
+
+  @Get("my-products")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async getMyProducts(@Req() req, @Query() query: ProductQueryDto) {
+    return this.productService.findMyProduct(query, req.user.id);
+  }
+
+  @Get("categories")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async getProductsByCategory( @Query() query: ProductQueryDto) {
+    return this.productService.findProductByCategory(query);
+  }
+  @Patch(":id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @UseInterceptors(
+    FilesInterceptor("files", 4, {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 },
+    })
+  )
+  @ResponseMessage("product updated successfully")
+  async updateProduct(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Req() req,
+    @Body() dto: UpdateProductDto,
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+        fileIsRequired: false, // ← images are optional on update
+      })
+    )
+    files?: Express.Multer.File[]
+  ) {
+    return this.productService.updateProduct(id, req.user.id, dto, files);
   }
 }

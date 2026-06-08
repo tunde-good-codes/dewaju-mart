@@ -122,31 +122,63 @@ export class ProductService {
 
       return result.data;
     } catch (error) {
-
       throw new BadRequestException(
         error?.response?.data || "Internal server error",
-        error?.response?.status || 500);
+        error?.response?.status || 500
+      );
     }
   }
 
-  async getAllProduct( query:ProductQueryDto, token: string|null) {
+  async getAllProduct(query: ProductQueryDto, token: string | null) {
     try {
       const result = await firstValueFrom(
-        this.httpService.get(`${this.productServer}`,  {
+        this.httpService.get(`${this.productServer}`, {
           headers: {
-
-
-...(token && {Authorization:token}
-),
-
-          },params:query
+            ...(token && { Authorization: token }),
+          },
+          params: query,
         })
       );
 
       return result.data;
     } catch (error) {
-      const response = error?.response?.data
+      const response = error?.response?.data;
       throw new BadRequestException("error getting product: " + response);
+    }
+  }
+
+  async getMyProducts(query: ProductQueryDto, token: string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.get(`${this.productServer}/my-product`, {
+          headers: {
+            Authorization: token,
+          },
+          params: query,
+        })
+      );
+
+      return result.data;
+    } catch (error) {
+      const response = error?.response?.data;
+      throw new BadRequestException("error getting my product: " + response);
+    }
+  }
+  async getMyProductsCategory(query: ProductQueryDto, token: string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.get(`${this.productServer}/categories`, {
+          headers: {
+            Authorization: token,
+          },
+          params: query,
+        })
+      );
+
+      return result.data;
+    } catch (error) {
+      const response = error?.response?.data;
+      throw new BadRequestException("error getting product categories: " + response);
     }
   }
 }

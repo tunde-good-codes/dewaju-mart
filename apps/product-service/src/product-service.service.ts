@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   Logger,
@@ -27,6 +28,7 @@ import { KAFKA_SERVICE, KAFKA_TOPICS } from "@app/kafka";
 import { ClientKafka } from "@nestjs/microservices";
 import e from "express";
 import { ProductQueryDto } from "./dtos/product-query.dto";
+import { UpdateProductDto } from "./dtos/update-product-dto";
 
 const MAX_PRODUCT_IMAGES = 4;
 @Injectable()
@@ -239,14 +241,12 @@ export class ProductService implements OnModuleInit {
     limit: number;
     totalPages: number;
   }> {
-
     const { limit = 10, page = 1, search, categoryId, sellerId } = query;
 
     const skip = (page - 1) * limit;
-    const queryProduct = await this.productRepository
+    const queryProduct = this.productRepository
       .createQueryBuilder("product")
       .leftJoinAndSelect("product.category", "category")
-      .where("product.isDeleted = :isDeleted", { isDeleted: false })
       .skip(skip)
       .take(limit)
       .orderBy("product.createdAt", "DESC");
@@ -273,9 +273,89 @@ export class ProductService implements OnModuleInit {
       data,
       total,
       page: Number(page),
-      limit: Number(page),
+      limit: Number(limit),
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  async findMyProduct(query: ProductQueryDto, sellerId: string) {
+    return await this.findAllProduct({ ...query, sellerId: sellerId });
+  }
+  async findProductByCategory(query: ProductQueryDto) {
+    return await this.findAllProduct({ ...query, categoryId: query.categoryId });
+  }
+
+  async updateProduct(
+    productId: string,
+    sellerId: string,
+    dto: UpdateProductDto,
+    files?: Express.Multer.File[] // optional — seller may not update images
+  ): Promise<Product> {
+    const product = await this.productRepository
+      .createQueryBuilder("product")
+      .addSelect("product.imagePublicIds") // need old publicIds for cleanup
+      .where("product.id = :productId", { productId })
+      .getOne();
+
+    if (!product) throw new NotFoundException("Product not found");
+
+    if (product.sellerId !== sellerId) {
+      throw new ForbiddenException("You can only update your own products");
+    }
+
+    // ── Update name/price/stock/etc ───────────────────────────────────────
+    if (Object.keys(dto).length > 0) {
+      // regenerate slug if name changed
+      if (dto.name) {
+        (dto as any).slug = slugify(dto.name, { lower: true });
+      }
+      this.productRepository.merge(product, dto);
+    }
+
+    if (files && files.length > 0) {
+      if (files.length > MAX_PRODUCT_IMAGES) {
+        throw new BadRequestException(
+          `Maximum ${MAX_PRODUCT_IMAGES} images allowed per product.`
+        );
+      }
+
+      const correlationId = uuid();
+      const payload: UploadMultiplePayload = {
+        files: files.map((f) => ({
+          buffer: f.buffer.toString("base64"),
+          mimetype: f.mimetype,
+          originalName: f.originalname,
+        })),
+        folder: MEDIA_FOLDERS.PRODUCT_IMAGES,
+        maxCount: MAX_PRODUCT_IMAGES,
+        correlationId,
+      };
+
+      let result: UploadMultipleResult;
+      try {
+        result = await firstValueFrom(
+          this.kafkaClient
+            .send<UploadMultipleResult>(
+              KAFKA_TOPICS.UPLOAD_MULTIPLE_PRODUCT_IMAGE,
+              payload
+            )
+            .pipe(timeout(30000))
+        );
+      } catch {
+        throw new BadRequestException(
+          "Image upload timed out. Please try again."
+        );
+      }
+
+      if (!result.success || !result.urls || !result.publicIds) {
+        throw new BadRequestException(`Image upload failed: ${result.error}`);
+      }
+
+      product.imageUrls = result.urls;
+      product.imagePublicIds = result.publicIds;
+    }
+
+    return this.productRepository.save(product);
   }
 
   async deleteProduct(id: string): Promise<void> {
