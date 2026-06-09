@@ -10,6 +10,8 @@ import {
   MaxFileSizeValidator,
   Param,
   ParseFilePipe,
+  ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UploadedFile,
@@ -22,6 +24,7 @@ import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
 import { CreateProductDto } from "apps/product-service/src/dtos/create-product-dto";
 import { ProductQueryDto } from "apps/product-service/src/dtos/product-query.dto";
+import { UpdateProductDto } from "apps/product-service/src/dtos/update-product-dto";
 
 @Controller("products")
 export class ProductController {
@@ -139,5 +142,42 @@ export class ProductController {
   @Get(":id")
   async singleProduct(@Param("id") id: string) {
     return await this.productService.getSingleProduct(id);
+  }
+
+  @Patch(":id")
+  @UseInterceptors(
+    FilesInterceptor("files", 4, {
+      storage: memoryStorage(),
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+    })
+  )
+  async updateProduct(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Headers("authorization") token: string,
+    @Body() dto: UpdateProductDto,
+
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({
+            maxSize: 5 * 1024 * 1024,
+          }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      })
+    )
+    files: Express.Multer.File[]
+  ) {
+    const formattedToken = token.startsWith("Bearer ")
+      ? token
+      : `Bearer ${token}`;
+    return await this.productService.updateProduct(
+      id,
+      formattedToken,
+      dto,
+      files
+    );
   }
 }

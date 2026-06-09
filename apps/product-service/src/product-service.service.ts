@@ -7,6 +7,7 @@ import {
   Logger,
   NotFoundException,
   OnModuleInit,
+  UnauthorizedException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Category } from "./entities/categories.entities";
@@ -270,11 +271,11 @@ export class ProductService implements OnModuleInit {
     if (!data.length) throw new NotFoundException("No products found");
 
     return {
-      data,
       total,
       page: Number(page),
       limit: Number(limit),
       totalPages: Math.ceil(total / limit),
+      data,
     };
   }
 
@@ -289,7 +290,7 @@ export class ProductService implements OnModuleInit {
       throw new NotFoundException("no product found!");
     }
     return {
-      product
+      product,
     };
   }
   async findMyProduct(query: ProductQueryDto, sellerId: string) {
@@ -320,7 +321,6 @@ export class ProductService implements OnModuleInit {
       throw new ForbiddenException("You can only update your own products");
     }
 
-    // ── Update name/price/stock/etc ───────────────────────────────────────
     if (Object.keys(dto).length > 0) {
       // regenerate slug if name changed
       if (dto.name) {
@@ -375,7 +375,7 @@ export class ProductService implements OnModuleInit {
     return this.productRepository.save(product);
   }
 
-  async deleteProduct(id: string): Promise<void> {
+  async deleteProduct(id: string, sellerId: string) {
     const product = await this.productRepository
       .createQueryBuilder("product")
       .addSelect("product.imagePublicIds")
@@ -383,7 +383,11 @@ export class ProductService implements OnModuleInit {
       .getOne();
 
     if (!product) throw new NotFoundException("Product not found");
-
+    if (product.sellerId !== sellerId) {
+      throw new UnauthorizedException(
+        "you are not authorized to delete this product"
+      );
+    }
     // Clean up Cloudinary assets (fire-and-forget)
     if (product.imagePublicIds?.length) {
       this.kafkaClient.emit(KAFKA_TOPICS.MEDIA_DELETE, {
@@ -391,7 +395,11 @@ export class ProductService implements OnModuleInit {
       });
     }
 
-    await this.productRepository.remove(product);
+    const deletedProduct = await this.productRepository.remove(product);
+    return {
+      success: true,
+      deletedProduct,
+    };
   }
   getHello(): string {
     return "Hello Worldie!";

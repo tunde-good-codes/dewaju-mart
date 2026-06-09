@@ -1,5 +1,5 @@
 export const KAFKA_CLIENT_ID = "dewaju-mart-api";
-export const KAFKA_BROKER = "localhost:9092";
+export const KAFKA_BROKER = process.env.KAFKA_BROKER;
 export const KAFKA_CONSUMER_GROUP = "dewaju-mart-consumer-api";
 
 export const KAFKA_TOPICS = {

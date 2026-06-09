@@ -4,6 +4,7 @@ import { Logger } from "@nestjs/common";
 import { configureGlobalSettings } from "libs/bootstrap.util";
 import { SERVICES_PORT } from "libs/shared/constants/services.constant";
 import { Transport } from "@nestjs/microservices";
+import { KAFKA_BROKER } from "@app/kafka";
 
 async function bootstrap() {
   process.title = "product service group"
@@ -17,7 +18,7 @@ async function bootstrap() {
   app.connectMicroservice({
     transport:Transport.KAFKA, options:{
       client:{
-        brokers:["localhost:9092"]
+        brokers:[KAFKA_BROKER]
       },
       consumer:{
         groupId:"product-service-group"

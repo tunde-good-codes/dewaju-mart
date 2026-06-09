@@ -26,7 +26,6 @@ export function configureGlobalSettings(
     }),
   );
 
-  // 🔥 3. Global Interceptor Setup
   const reflector = app.get(Reflector);
   app.useGlobalInterceptors(new ResponseInterceptor(reflector));
 

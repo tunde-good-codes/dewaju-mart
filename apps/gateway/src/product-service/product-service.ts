@@ -8,9 +8,10 @@ import {
 import { CreateProductCategoryDto } from "apps/product-service/src/dtos/create-product-category.dto";
 import { CreateProductDto } from "apps/product-service/src/dtos/create-product-dto";
 import { ProductQueryDto } from "apps/product-service/src/dtos/product-query.dto";
+import { UpdateProductDto } from "apps/product-service/src/dtos/update-product-dto";
 import FormData from "form-data";
 import { SERVICES_PORT } from "libs/shared/constants/services.constant";
-import { firstValueFrom } from "rxjs";
+import { first, firstValueFrom } from "rxjs";
 
 @Injectable()
 export class ProductService {
@@ -208,6 +209,71 @@ export class ProductService {
       );
       throw new HttpException(
         response || "Error getting product categories",
+        status
+      );
+    }
+  }
+
+  async updateProduct(
+    id: string,
+    token: string,
+    dto: UpdateProductDto,
+    files: Express.Multer.File[]
+  ) {
+    try {
+      const form = new FormData();
+      files.forEach((file) => {
+        form.append("files", file.buffer, {
+          filename: file.originalname,
+          contentType: file.mimetype,
+        });
+      });
+      Object.entries(dto).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          form.append(key, String(value));
+        }
+      });
+      const result = await firstValueFrom(
+        this.httpService.patch(`${this.productServer}/${id}`, form, {
+          headers: {
+            Authorization: token,
+            ...form.getHeaders(),
+          },
+        })
+      );
+
+      return result.data;
+    } catch (error) {
+      const response = error.message;
+      const status = error.status;
+
+      this.logger.error(`error updating product`);
+
+      throw new HttpException(response, status);
+    }
+  }
+
+
+
+  async deleteSingleProduct(id: string, token :string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.delete(`${this.productServer}/${id}`, {
+          headers:{
+            Authorization:token
+          }
+        })
+      );
+      return result.data;
+    } catch (error) {
+      const response = error.response.data;
+      const status = error.response.status;
+      this.logger.error(
+        `error deleting a single product: ${JSON.stringify(response)}`
+      );
+
+      throw new HttpException(
+        response || "error deleting single product",
         status
       );
     }

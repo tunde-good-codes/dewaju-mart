@@ -106,10 +106,10 @@ export class ProductServiceController {
 
   @Delete(":id")
   @ResponseMessage("product deleted")
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  async deleteProduct(@Param("id", ParseUUIDPipe) id: string) {
-    return this.productService.deleteProduct(id);
+  async deleteProduct(@Param("id", ParseUUIDPipe) id: string, @Req() req) {
+    return this.productService.deleteProduct(id, req.user.id);
   }
 
   @Get()
@@ -146,7 +146,7 @@ export class ProductServiceController {
           new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
           new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
         ],
-        fileIsRequired: false, // ← images are optional on update
+        fileIsRequired: false,
       })
     )
     files?: Express.Multer.File[]
