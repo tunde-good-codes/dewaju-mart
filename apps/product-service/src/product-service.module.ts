@@ -45,5 +45,6 @@ import { JwtStrategy } from "../jwt.strategies";
   controllers: [ProductServiceController],
 
   providers: [ProductService, JwtStrategy],
+  exports:[ProductService]
 })
 export class ProductServiceModule {}

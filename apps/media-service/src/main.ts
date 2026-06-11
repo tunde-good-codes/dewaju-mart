@@ -4,7 +4,6 @@ import { Logger } from "@nestjs/common";
 import { Transport } from "@nestjs/microservices";
 import { SERVICES_PORT } from "libs/shared/constants/services.constant";
 import { configureGlobalSettings } from "libs/bootstrap.util";
-import { KAFKA_BROKER } from "@app/kafka";
 
 async function bootstrap() {
   process.title = "media-service";
@@ -17,7 +16,7 @@ async function bootstrap() {
     transport: Transport.KAFKA,
     options: {
       client: {
-        brokers: [KAFKA_BROKER],
+        brokers: ["localhost:9092"],
       },
       consumer: {
         groupId: "media-service-group",

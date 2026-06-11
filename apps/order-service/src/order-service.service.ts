@@ -1,19 +1,24 @@
 import {
+  BadGatewayException,
   BadRequestException,
   ConflictException,
   Inject,
   Injectable,
   Logger,
+  NotFoundException,
   OnModuleInit,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Order, OrderStatus } from "./entities/order.entity";
-import { DataSource, Repository } from "typeorm";
+import { DataSource, Not, Repository } from "typeorm";
 import { KAFKA_SERVICE, KAFKA_TOPICS } from "@app/kafka";
 import { ClientKafka } from "@nestjs/microservices";
 import { OrderItem } from "./entities/order.item.entity";
 import { CreateOrderDto } from "./dtos/create-order.dto";
-import { ProductService } from "apps/product-service/src/product-service.service";
+import { HttpService } from "@nestjs/axios";
+import { firstValueFrom } from "rxjs";
+import { SERVICES_PORT } from "libs/shared/constants/services.constant";
+import { transitionOrderStatus } from "./state.machine";
 
 @Injectable()
 export class OrderService implements OnModuleInit {
@@ -27,11 +32,9 @@ export class OrderService implements OnModuleInit {
     private readonly datasource: DataSource,
     @Inject(KAFKA_SERVICE)
     private readonly kafkaClient: ClientKafka,
-
-    @Inject()
-    private readonly productService: ProductService
+    private readonly httpService: HttpService
   ) {}
-
+  private productServiceServer = `http://localhost:${SERVICES_PORT.AUTH_SERVICE}/api/v1/products`;
   getHello(): string {
     return "Hello World!";
   }
@@ -39,6 +42,22 @@ export class OrderService implements OnModuleInit {
   async onModuleInit() {
     await this.kafkaClient.connect();
     this.logger.log("kafka connected for order service");
+  }
+
+  async getSingleProduct(id: string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.get(`${this.productServiceServer}/${id}`)
+      );
+
+      if (!result) {
+        throw new NotFoundException("error fetching product for this order");
+      }
+
+      return result.data;
+    } catch (error) {
+      throw new BadGatewayException(error.message);
+    }
   }
 
   async createOrder(dto: CreateOrderDto, buyerId: string, buyerEmail: string) {
@@ -51,9 +70,7 @@ export class OrderService implements OnModuleInit {
       let totalAmount: number = 0;
       const orderItems = await Promise.all(
         dto.items.map(async (item) => {
-          const product = await this.productService.getSingleProduct(
-            item.productId
-          );
+          const product = await this.getSingleProduct(item.productId);
 
           if (!product) {
             throw new BadRequestException("Product not available");
@@ -98,6 +115,11 @@ export class OrderService implements OnModuleInit {
       };
 
       this.kafkaClient.emit(KAFKA_TOPICS.ORDER_CREATED, createOrderPayload);
+
+      return {
+        savedOrder,
+        orderItems,
+      };
     } catch (error) {
       await qr.rollbackTransaction();
 
@@ -106,5 +128,92 @@ export class OrderService implements OnModuleInit {
     } finally {
       await qr.release();
     }
+  }
+
+  async getMyOrders(userId: string): Promise<Order[]> {
+    const myOrders = await this.orderRepository
+      .createQueryBuilder("orders")
+      .where("orders.buyerId = :userId", { userId })
+      .leftJoinAndSelect("orders.orderItems", "orderItems")
+      .orderBy("orders.createdAt", "DESC")
+      .getMany();
+
+    if (!myOrders || myOrders.length === 0) {
+      throw new NotFoundException("no order for this user");
+    }
+
+    return myOrders;
+  }
+
+  async getMyOneOrderById(userId: string, orderId: string) {
+    const order = await this.orderRepository
+      .createQueryBuilder("order")
+      .where("order.buyerId = :userId", { userId })
+      .andWhere("order.id = :orderId", { orderId })
+      .leftJoinAndSelect("order.orderItems", "orderItems")
+      .getOne();
+
+    if (!order) {
+      throw new NotFoundException("Order not found");
+    }
+
+    return order;
+  }
+
+  async getOrderById(id: string) {
+    const order = await this.orderRepository.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order not found for this id!: ${id}`);
+    }
+
+    return order;
+  }
+
+  async cancelOrder(userId: string, orderId: string) {
+    const order = await this.getMyOneOrderById(userId, orderId);
+
+    order.orderStatus = transitionOrderStatus(
+      order.orderStatus,
+      OrderStatus.CANCELLED
+    );
+
+    await this.orderRepository.save(order);
+    this.logger.log(`this order has been cancelled: ${userId}`);
+
+    return "order cancelled";
+  }
+
+  async handlePaymentConfirmed(id: string) {
+    const order = await this.getOrderById(id);
+
+    order.orderStatus = transitionOrderStatus(
+      order.orderStatus,
+      OrderStatus.PAYMENT_CONFIRMED
+    );
+
+    await this.orderRepository.save(order);
+    this.logger.log(`this payment for this order has been confirmed`);
+
+    return "order confirmed";
+  }
+
+  async handleFailedPayment(id: string) {
+    const order = await this.getOrderById(id);
+
+    order.orderStatus = transitionOrderStatus(
+      order.orderStatus,
+      OrderStatus.CANCELLED
+    );
+
+    await this.orderRepository.save(order);
+
+    this.logger.log(`the order  with this id has been deemed failed: ${id}`);
+
+    return "order failed";
   }
 }

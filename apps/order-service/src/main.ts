@@ -3,7 +3,6 @@ import { OrderServiceModule } from "./order-service.module";
 import { Logger } from "@nestjs/common";
 import { Transport } from "@nestjs/microservices";
 import { SERVICES_PORT } from "libs/shared/constants/services.constant";
-import { KAFKA_BROKER } from "@app/kafka";
 import { configureGlobalSettings } from "libs/bootstrap.util";
 
 async function bootstrap() {
@@ -17,7 +16,7 @@ async function bootstrap() {
     transport: Transport.KAFKA,
     options: {
       client: {
-        brokers: [KAFKA_BROKER],
+        brokers: ["localhost:9092"],
       },
       consumer: {
         groupId: "order-service-group",

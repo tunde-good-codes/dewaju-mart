@@ -42,7 +42,7 @@ export class Order {
   orderStatus: OrderStatus;
 
   @OneToMany(() => OrderItem, (item) => item.order)
-  orderItem: OrderItem[];
+  orderItems: OrderItem[];
 
 
   @CreateDateColumn()

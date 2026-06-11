@@ -1,8 +1,18 @@
-import { Module } from "@nestjs/common";
+import { Inject, Module } from "@nestjs/common";
 import { OrderServiceController } from "./order-service.controller";
-import { OrderServiceService } from "./order-service.service";
-import { ConfigModule } from "@nestjs/config";
+import { OrderService } from "./order-service.service";
+import { ConfigModule, ConfigService } from "@nestjs/config";
 import { KafkaModule } from "@app/kafka";
+import { ProductModule } from "apps/gateway/src/product-service/product.module";
+import { DatabaseModule } from "@app/database";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { Order } from "./entities/order.entity";
+import { OrderItem } from "./entities/order.item.entity";
+import { HttpModule } from "@nestjs/axios";
+import { JwtModule } from "@nestjs/jwt";
+import { JwtStrategy } from "./jwt.strategies";
+import { Passport } from "passport";
+import { PassportModule } from "@nestjs/passport";
 
 @Module({
   imports: [
@@ -15,8 +25,24 @@ import { KafkaModule } from "@app/kafka";
     }),
 
     KafkaModule.register("order-service-group"),
+    HttpModule,
+    DatabaseModule,
+    PassportModule.register({
+      defaultStrategy: "jwt",
+    }),
+    TypeOrmModule.forFeature([Order, OrderItem]),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.getOrThrow<string>("JWT_SECRET"),
+        signOptions: {
+          expiresIn: configService.getOrThrow<number>("JWT_EXPIRES_IN"),
+        },
+      }),
+    }),
   ],
   controllers: [OrderServiceController],
-  providers: [OrderServiceService],
+  providers: [OrderService, JwtStrategy],
 })
 export class OrderServiceModule {}
