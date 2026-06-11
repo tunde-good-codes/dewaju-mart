@@ -10,5 +10,6 @@ export const KAFKA_TOPICS = {
   VERIFY_EMAIL_OTP: "verify_email-otp",
   UPLOAD_SINGLE_USER_IMAGE: "upload-single-user-image",
   UPLOAD_MULTIPLE_PRODUCT_IMAGE: "upload-multiple-product-images",
-  MEDIA_DELETE:"media_delete"
+  MEDIA_DELETE:"media_delete",
+  ORDER_CREATED:"order-created"
 };
