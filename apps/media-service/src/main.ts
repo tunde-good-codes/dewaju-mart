@@ -16,7 +16,7 @@ async function bootstrap() {
     transport: Transport.KAFKA,
     options: {
       client: {
-        brokers: ["localhost:9092"],
+        brokers: [process.env.KAFKA_BROKER],
       },
       consumer: {
         groupId: "media-service-group",
@@ -31,6 +31,8 @@ async function bootstrap() {
   });
   await app.listen(SERVICES_PORT.MEDIA_SERVICE);
 
-  logger.log(`connected to media service on port : ${SERVICES_PORT.MEDIA_SERVICE}`);
+  logger.log(
+    `connected to media service on port : ${SERVICES_PORT.MEDIA_SERVICE}`
+  );
 }
 bootstrap();

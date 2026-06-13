@@ -3,7 +3,6 @@ import { OrderServiceController } from "./order-service.controller";
 import { OrderService } from "./order-service.service";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { KafkaModule } from "@app/kafka";
-import { ProductModule } from "apps/gateway/src/product-service/product.module";
 import { DatabaseModule } from "@app/database";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Order } from "./entities/order.entity";

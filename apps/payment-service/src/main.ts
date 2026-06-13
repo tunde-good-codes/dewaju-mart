@@ -1,17 +1,17 @@
+import { KAFKA_BROKER } from './../../../libs/kafka/src/kafka.topics';
 import { NestFactory } from "@nestjs/core";
-import { ProductServiceModule } from "./product-service.module";
+import { PaymentServiceModule } from "./payment-service.module";
 import { Logger } from "@nestjs/common";
+import { Transport } from "@nestjs/microservices";
 import { configureGlobalSettings } from "libs/bootstrap.util";
 import { SERVICES_PORT } from "libs/shared/constants/services.constant";
-import { Transport } from "@nestjs/microservices";
 
 async function bootstrap() {
-  process.title = "product service group";
+  process.title = "payment-service";
 
-  const logger = new Logger("product-service");
+  const logger = new Logger();
 
-  const app = await NestFactory.create(ProductServiceModule);
-
+  const app = await NestFactory.create(PaymentServiceModule);
   app.connectMicroservice({
     transport: Transport.KAFKA,
     options: {
@@ -19,20 +19,19 @@ async function bootstrap() {
         brokers: [process.env.KAFKA_BROKER],
       },
       consumer: {
-        groupId: "product-service-group",
+        groupId: "payment-service-group",
       },
     },
   });
+
   app.startAllMicroservices();
   app.enableShutdownHooks();
-
   configureGlobalSettings(app, {
-    serviceName: "product-service",
-    prefix: "api/v1/products",
+    serviceName: "payment-service",
+    prefix: "api/v1/payment",
   });
-  await app.listen(SERVICES_PORT.PRODUCT_SERVICE ?? 3003);
-  logger.log(
-    `product service is running on port: ${SERVICES_PORT.PRODUCT_SERVICE}`
-  );
+  await app.listen(SERVICES_PORT.PAYMENT_SERVICE);
+
+  logger.log("payment service running and connected on port:3006")
 }
 bootstrap();

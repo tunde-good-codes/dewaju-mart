@@ -11,5 +11,8 @@ export const KAFKA_TOPICS = {
   UPLOAD_SINGLE_USER_IMAGE: "upload-single-user-image",
   UPLOAD_MULTIPLE_PRODUCT_IMAGE: "upload-multiple-product-images",
   MEDIA_DELETE:"media_delete",
-  ORDER_CREATED:"order-created"
+  ORDER_CREATED:"order-created",
+  PAYMENT_FAILED:"payment_failed",
+  PAYMENT_CONFIRMED:"payment_confirmed",
+  PAYMENT_INITIATED:"payment_initiated"
 };
