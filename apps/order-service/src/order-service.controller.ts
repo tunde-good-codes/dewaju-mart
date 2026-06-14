@@ -42,7 +42,7 @@ export class OrderServiceController {
     return this.orderService.getOrderById(id);
   }
 
-  @Get(":id")
+  @Get(":id/my-order")
   @UseGuards(JwtAuthGuard)
   @ResponseMessage("an order of yours fetched successfully")
   async getMyOrderById(@Req() req, @Param("id", ParseUUIDPipe) id: string) {
@@ -52,21 +52,21 @@ export class OrderServiceController {
   @Get(":id/cancel")
   @UseGuards(JwtAuthGuard)
   @ResponseMessage("this order has been cancelled successfully")
-  async cancelOrder(@Req() req, @Param("id", ParseUUIDPipe) id: string) {
-    return this.orderService.cancelOrder(req.user.id, id);
+  async cancelMyOrder(@Req() req, @Param("id", ParseUUIDPipe) id: string) {
+    return this.orderService.cancelMyOrder(req.user.id, id);
   }
-  @Get(":id")
+  @Get(":id/confirm-payment")
   @UseGuards(JwtAuthGuard)
-  @ResponseMessage("this order has been payment confirmed successfully")
+  @ResponseMessage("this order  payment confirmed successfully")
   async handlePaymentConfirmed(
     @Req() req,
     @Param("id", ParseUUIDPipe) id: string
   ) {
     return this.orderService.handlePaymentConfirmed(id);
   }
-  @Get(":id")
+  @Get(":id/failed-payment")
   @UseGuards(JwtAuthGuard)
-  @ResponseMessage("this order has been payment confirmed successfully")
+  @ResponseMessage("this order  payment has failed")
   async handleFailedConfirmed(
     @Req() req,
     @Param("id", ParseUUIDPipe) id: string

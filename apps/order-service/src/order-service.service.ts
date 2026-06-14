@@ -66,6 +66,8 @@ export class OrderService implements OnModuleInit {
     await qr.connect();
     await qr.startTransaction();
 
+    this.logger.log(dto);
+
     try {
       let totalAmount: number = 0;
       const orderItems = await Promise.all(
@@ -174,7 +176,7 @@ export class OrderService implements OnModuleInit {
     return order;
   }
 
-  async cancelOrder(userId: string, orderId: string) {
+  async cancelMyOrder(userId: string, orderId: string) {
     const order = await this.getMyOneOrderById(userId, orderId);
 
     order.orderStatus = transitionOrderStatus(

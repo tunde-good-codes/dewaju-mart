@@ -27,9 +27,7 @@ export class OrderController {
   }
 
   @Get()
-  async getMyOrders(
-    @Headers("authorization") token: string
-  ) {
+  async getMyOrders(@Headers("authorization") token: string) {
     const formattedToken = token.startsWith("Bearer ")
       ? token
       : `Bearer ${token}`;
@@ -37,6 +35,17 @@ export class OrderController {
     return await this.orderService.getMyOrders(formattedToken);
   }
 
+  @Get(":id/my-order")
+  async getMySingleOrderById(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Headers("authorization") token: string
+  ) {
+    const formattedToken = token.startsWith("Bearer ")
+      ? token
+      : `Bearer ${token}`;
+
+    return await this.orderService.getMyOrderById(id, formattedToken);
+  }
   @Get(":id")
   async getSingleOrder(
     @Param("id", ParseUUIDPipe) id: string,
@@ -47,5 +56,27 @@ export class OrderController {
       : `Bearer ${token}`;
 
     return await this.orderService.getSingleOrder(id, formattedToken);
+  }
+  @Get(":id/cancel")
+  async cancelMyOrder(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Headers("authorization") token: string
+  ) {
+    const formattedToken = token.startsWith("Bearer ")
+      ? token
+      : `Bearer ${token}`;
+
+    return await this.orderService.cancelMyOrder(id, formattedToken);
+  }
+  @Get(":id/confirm-payment")
+  async confirmOrderPayment(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Headers("authorization") token: string
+  ) {
+    const formattedToken = token.startsWith("Bearer ")
+      ? token
+      : `Bearer ${token}`;
+
+    return await this.orderService.confirmMyOrder(id, formattedToken);
   }
 }

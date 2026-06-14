@@ -21,14 +21,14 @@ export class OrderService {
       this.logger.log("order created");
       return result.data;
     } catch (error) {
-      const message = error?.message;
       const statusCode = error?.statusCode;
 
       this.logger.warn("error creating an order");
       throw new BadRequestException({
-        error: message,
+        error: error.message,
         statusCode,
         message: "can't create a new order",
+        backendError: error?.response?.data
       });
     }
   }
@@ -83,12 +83,87 @@ export class OrderService {
   async getMyOrderById(id: string, token: string) {
     try {
       const result = await firstValueFrom(
-        this.httpService.get(`${this.orderServerUrl}/${id}`, {
+        this.httpService.get(`${this.orderServerUrl}/${id}/my-order`, {
           headers: {
             Authorization: token,
           },
         })
       );
-    } catch (error) {}
+      return result.data;
+    } catch (error) {
+      const message = error?.message;
+      const statusCode = error?.statusCode;
+
+      this.logger.warn("error getting an order");
+      throw new BadRequestException({
+        error: message,
+        statusCode,
+        message: "can't get an order with this id: " + id,
+      });
+    }
+  }
+  async cancelMyOrder(id: string, token: string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.get(`${this.orderServerUrl}/${id}/cancel`, {
+          headers: {
+            Authorization: token,
+          },
+        })
+      );
+      return result.data;
+    } catch (error) {
+      const message = error?.message;
+      const statusCode = error?.statusCode;
+
+      this.logger.warn("error cancelling an order");
+      throw new BadRequestException({
+        error: message,
+        statusCode,
+        message: "can't cancel an order with this id: " + id,
+      });
+    }
+  }
+  async confirmMyOrder(id: string, token: string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.get(`${this.orderServerUrl}/${id}/confirm-payment`, {
+          headers: {
+            Authorization: token,
+          },
+        })
+      );
+      return result.data;
+    } catch (error) {
+      this.logger.error(`Order creation failed: ${error.message}`);
+
+      throw new BadRequestException({
+        message: "Can't create order",
+        code: error.code,
+        details: error.response?.data?.message ?? error.message,
+      });
+    }
+  }
+  async failedPayment(id: string, token: string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.get(`${this.orderServerUrl}/${id}/failed-payment`, {
+          headers: {
+            Authorization: token,
+          },
+        })
+      );
+      return result.data;
+    } catch (error) {
+      const message = error?.message;
+      const statusCode = error?.statusCode;
+
+      this.logger.warn("error cancelling an order");
+      throw new BadRequestException({
+        error: message,
+        statusCode,
+        message: "can't cancel an order with this id: " + id,
+      });
+    }
   }
 }

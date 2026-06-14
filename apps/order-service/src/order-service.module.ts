@@ -32,7 +32,7 @@ import { PassportModule } from "@nestjs/passport";
     TypeOrmModule.forFeature([Order, OrderItem]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      inject: [ConfigModule],
+      inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
         secret: configService.getOrThrow<string>("JWT_SECRET"),
         signOptions: {
