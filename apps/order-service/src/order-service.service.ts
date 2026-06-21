@@ -48,7 +48,6 @@ export class OrderService implements OnModuleInit {
   async getSingleProduct(id: string) {
     const url = `${this.productServiceServer}/${id}`;
 
-    this.logger.log(`Calling product service: ${url}`);
     try {
       const result = await firstValueFrom(this.httpService.get(url));
 

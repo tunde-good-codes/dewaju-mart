@@ -11,7 +11,9 @@ async function bootstrap() {
 
   const logger = new Logger();
 
-  const app = await NestFactory.create(PaymentServiceModule);
+  const app = await NestFactory.create(PaymentServiceModule, {
+    rawBody:true
+  });
   app.connectMicroservice({
     transport: Transport.KAFKA,
     options: {

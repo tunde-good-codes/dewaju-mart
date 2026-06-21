@@ -33,10 +33,12 @@ export class PaystackService {
   ): Promise<PaystackInitializationResponse> {
     const { amount, email, reference, metadata } = payload;
 
+    const amountInKobo = Math.round(amount * 100);
+
     const response = await firstValueFrom(
       this.httpService.post(
         `${this.paystackBaseUrl}/transaction/initialize`,
-        { amount, email, reference, metadata },
+        { amount: amountInKobo, email, reference, metadata },
         {
           headers: {
             Authorization: `Bearer ${this.paystackSecretKey}`,
@@ -79,6 +81,6 @@ export class PaystackService {
       throw new ConflictException("verification of signature failed");
     }
 
-    return isValid
+    return isValid;
   }
 }

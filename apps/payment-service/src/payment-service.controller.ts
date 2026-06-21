@@ -24,7 +24,7 @@ export class PaymentController {
     payload: {
       orderId: string;
       buyerId: string;
-      email: string;
+      buyerEmail: string;
       totalAmount: number;
     }
   ) {

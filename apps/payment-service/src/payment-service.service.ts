@@ -48,17 +48,18 @@ export class PaymentService implements OnModuleInit {
   async handleOrderCreated(payload: {
     orderId: string;
     buyerId: string;
-    email: string;
+    buyerEmail: string;
     totalAmount: number;
   }) {
-    const { orderId, buyerId, email, totalAmount } = payload;
+    const { orderId, buyerId, buyerEmail, totalAmount } = payload;
+    this.logger.log(`Received order payload: ${JSON.stringify(payload)}`);
 
     const reference = `Dewaju_mart-${uuid()}`;
 
     try {
       const paystackData = await this.paystackService.initializeTransaction({
         amount: totalAmount,
-        email,
+        email:buyerEmail,
         reference,
         metadata: {
           orderId,
@@ -70,7 +71,7 @@ export class PaymentService implements OnModuleInit {
         const newPayment = manager.create(Payment, {
           orderId,
           buyerId,
-          buyerEmail: email,
+          buyerEmail: buyerEmail,
           amount: totalAmount,
           reference,
           status: PaymentStatus.PENDING,
@@ -83,14 +84,14 @@ export class PaymentService implements OnModuleInit {
       this.kafkaClient.emit(KAFKA_TOPICS.PAYMENT_INITIATED, {
         orderId,
         buyerId,
-        buyerEmail: email,
+        buyerEmail: buyerEmail,
         reference,
         authorizationUrl: paystackData.authorization_url,
       });
       this.logger.log(
         `Initializing payment with: ${JSON.stringify({
           amount: Math.round(totalAmount * 100),
-          email,
+          buyerEmail,
           reference,
         })}`
       );
@@ -107,6 +108,12 @@ export class PaymentService implements OnModuleInit {
       this.logger.error(
         `Failed to initialize payment for order ${orderId}`,
         error.stack
+      );
+
+      this.logger.error(
+        `Paystack error response: ${JSON.stringify(
+          error?.response?.data ?? error.message
+        )}`
       );
 
       this.kafkaClient.emit(KAFKA_TOPICS.PAYMENT_FAILED, {
