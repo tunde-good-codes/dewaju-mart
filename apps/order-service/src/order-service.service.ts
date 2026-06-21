@@ -2,6 +2,7 @@ import {
   BadGatewayException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   Logger,
@@ -34,7 +35,7 @@ export class OrderService implements OnModuleInit {
     private readonly kafkaClient: ClientKafka,
     private readonly httpService: HttpService
   ) {}
-  private productServiceServer = `http://localhost:${SERVICES_PORT.AUTH_SERVICE}/api/v1/products`;
+  private productServiceServer = `http://localhost:${SERVICES_PORT.PRODUCT_SERVICE}/api/v1/products`;
   getHello(): string {
     return "Hello World!";
   }
@@ -45,10 +46,11 @@ export class OrderService implements OnModuleInit {
   }
 
   async getSingleProduct(id: string) {
+    const url = `${this.productServiceServer}/${id}`;
+
+    this.logger.log(`Calling product service: ${url}`);
     try {
-      const result = await firstValueFrom(
-        this.httpService.get(`${this.productServiceServer}/${id}`)
-      );
+      const result = await firstValueFrom(this.httpService.get(url));
 
       if (!result) {
         throw new NotFoundException("error fetching product for this order");
@@ -66,8 +68,6 @@ export class OrderService implements OnModuleInit {
     await qr.connect();
     await qr.startTransaction();
 
-    this.logger.log(dto);
-
     try {
       let totalAmount: number = 0;
       const orderItems = await Promise.all(
@@ -78,19 +78,18 @@ export class OrderService implements OnModuleInit {
             throw new BadRequestException("Product not available");
           }
 
-          if (product.product.stock < item.quantity) {
+          if (product.data.stock < item.quantity) {
             throw new ConflictException("This product might be out of stock");
           }
 
-          const subTotal = Number(product.product.price) * item.quantity;
-          totalAmount += subTotal;
-
+          const subTotal = Number(product.data.price * item.quantity);
+          totalAmount = Math.round((totalAmount + subTotal) * 100) / 100;
           return qr.manager.create(OrderItem, {
-            productId: product.product.id,
+            productId: product.data.id,
             subTotal,
-            productName: product.product.name,
+            productName: product.data.name,
             quantity: item.quantity,
-            unitPrice: product.product.price,
+            unitPrice: product.data.price,
           });
         })
       );
@@ -145,6 +144,16 @@ export class OrderService implements OnModuleInit {
     }
 
     return myOrders;
+  }
+
+  async getAllOrders() {
+    const orders = await this.orderRepository.find({});
+
+    if (!orders || orders.length === 0) {
+      throw new NotFoundException("no orders found");
+    }
+
+    return { orders };
   }
 
   async getMyOneOrderById(userId: string, orderId: string) {
@@ -217,5 +226,28 @@ export class OrderService implements OnModuleInit {
     this.logger.log(`the order  with this id has been deemed failed: ${id}`);
 
     return "order failed";
+  }
+
+  async deleteOrder(userId: string, orderId: string) {
+    const order = await this.orderRepository.findOne({
+      where: {
+        id: orderId,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order not found`);
+    }
+    if (order?.buyerId !== userId) {
+      throw new ForbiddenException(
+        "You are not authorized to delete this order"
+      );
+    }
+
+    await this.orderRepository.delete(order.id);
+
+    return {
+      message: `this order: ${order.id} has been deleted`,
+    };
   }
 }

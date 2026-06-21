@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -17,10 +18,6 @@ import { ResponseMessage } from "libs/decorator/response.message.decorator";
 export class OrderServiceController {
   constructor(private readonly orderService: OrderService) {}
 
-  @Get()
-  getHello(): string {
-    return this.orderService.getHello();
-  }
   @Post()
   @UseGuards(JwtAuthGuard)
   @ResponseMessage("order created successfully")
@@ -28,11 +25,18 @@ export class OrderServiceController {
     return this.orderService.createOrder(dto, req.user.id, req.user.email);
   }
 
-  @Get(":id")
+  @Get("")
   @UseGuards(JwtAuthGuard)
   @ResponseMessage("all your orders fetched successfully")
   async getMyOrders(@Req() req) {
     return this.orderService.getMyOrders(req.user.id);
+  }
+
+  @Get("")
+  @UseGuards(JwtAuthGuard)
+  @ResponseMessage("all your orders fetched successfully")
+  async getAllOrders(@Req() req) {
+    return this.orderService.getAllOrders();
   }
 
   @Get(":id")
@@ -72,5 +76,11 @@ export class OrderServiceController {
     @Param("id", ParseUUIDPipe) id: string
   ) {
     return this.orderService.handleFailedPayment(id);
+  }
+  @Delete(":id")
+  @UseGuards(JwtAuthGuard)
+  @ResponseMessage("this order  has been deleted")
+  async deleteOrder(@Req() req, @Param("id", ParseUUIDPipe) id: string) {
+    return this.orderService.deleteOrder(req.user.id, id);
   }
 }

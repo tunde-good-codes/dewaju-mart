@@ -87,7 +87,13 @@ export class PaymentService implements OnModuleInit {
         reference,
         authorizationUrl: paystackData.authorization_url,
       });
-
+      this.logger.log(
+        `Initializing payment with: ${JSON.stringify({
+          amount: Math.round(totalAmount * 100),
+          email,
+          reference,
+        })}`
+      );
       this.logger.log(
         `Payment initialized successfully. Order=${orderId}, Reference=${reference}`
       );

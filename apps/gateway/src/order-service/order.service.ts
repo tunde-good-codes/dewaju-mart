@@ -12,6 +12,7 @@ export class OrderService {
   constructor(private readonly httpService: HttpService) {}
 
   async createOrder(dto: CreateOrderDto, token: string) {
+
     try {
       const result = await firstValueFrom(
         this.httpService.post(`${this.orderServerUrl}`, dto, {
@@ -46,6 +47,29 @@ export class OrderService {
       return result.data;
     } catch (error) {
       const message = error?.message;
+      const statusCode = error?.statusCode;
+
+      this.logger.warn("error getting my order");
+      throw new BadRequestException({
+        error: message,
+        statusCode,
+        message: "can't get my orders",
+      });
+    }
+  }
+  async getAllOrders(token: string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.get(`${this.orderServerUrl}/all-orders`, {
+          headers: {
+            Authorization: token,
+          },
+        })
+      );
+
+      return result.data;
+    } catch (error) {
+      const message = error?.response.data;
       const statusCode = error?.statusCode;
 
       this.logger.warn("error getting my order");
@@ -166,4 +190,28 @@ export class OrderService {
       });
     }
   }
+  async deleteOrder(id: string, token: string) {
+    try {
+      const result = await firstValueFrom(
+        this.httpService.delete(`${this.orderServerUrl}/${id}`, {
+          headers: {
+            Authorization: token,
+          },
+        })
+      );
+      return result.data;
+    } catch (error) {
+      const message = error?.message;
+      const statusCode = error?.statusCode;
+
+      this.logger.warn("error deleting an order");
+      throw new BadRequestException({
+        error: message,
+        statusCode,
+        message: "can't delete an order with this id: " + id,
+      });
+    }
+  }
+
+
 }

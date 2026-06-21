@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
+  Logger,
   Param,
   ParseUUIDPipe,
   Post,
@@ -13,12 +15,15 @@ import { CreateOrderDto } from "apps/order-service/src/dtos/create-order.dto";
 @Controller("order")
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
+  private readonly logger = new Logger("gateway:order");
 
   @Post()
   async createOrder(
     @Body() dto: CreateOrderDto,
     @Headers("authorization") token: string
   ) {
+
+    
     const formattedToken = token.startsWith("Bearer ")
       ? token
       : `Bearer ${token}`;
@@ -33,6 +38,15 @@ export class OrderController {
       : `Bearer ${token}`;
 
     return await this.orderService.getMyOrders(formattedToken);
+  }
+
+  @Get("all-orders")
+  async getAllOrders(@Headers("authorization") token: string) {
+    const formattedToken = token.startsWith("Bearer ")
+      ? token
+      : `Bearer ${token}`;
+
+    return await this.orderService.getAllOrders(formattedToken);
   }
 
   @Get(":id/my-order")
@@ -78,5 +92,16 @@ export class OrderController {
       : `Bearer ${token}`;
 
     return await this.orderService.confirmMyOrder(id, formattedToken);
+  }
+  @Delete(":id")
+  async deleteOrder(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Headers("authorization") token: string
+  ) {
+    const formattedToken = token.startsWith("Bearer ")
+      ? token
+      : `Bearer ${token}`;
+
+    return await this.orderService.deleteOrder(id, formattedToken);
   }
 }
