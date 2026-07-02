@@ -11,6 +11,8 @@ import { OtpEmailProvider } from "./providers/otp-email-provider";
 import { UserRegisteredProvider } from "./providers/user-registered-email-provider";
 import { ResetPasswordProvider } from "./providers/reset-password-provider";
 import { VerifyEmailOtpProvider } from "./providers/verify-email-otp";
+import { PaymentInitiatedEmailProvider } from "./providers/payment-initiated-provider";
+import { PaymentConfirmedEmailProvider } from "./providers/payment-confirmed-provider";
 
 @Module({
   imports: [
@@ -66,6 +68,8 @@ import { VerifyEmailOtpProvider } from "./providers/verify-email-otp";
     UserRegisteredProvider,
     ResetPasswordProvider,
     VerifyEmailOtpProvider,
+    PaymentInitiatedEmailProvider,
+    PaymentConfirmedEmailProvider,
   ],
 })
 export class NotificationServiceModule {}

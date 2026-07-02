@@ -1,4 +1,4 @@
-import { VerifyEmailOtpProvider } from './providers/verify-email-otp';
+import { VerifyEmailOtpProvider } from "./providers/verify-email-otp";
 import { Inject, Injectable, OnModuleInit } from "@nestjs/common";
 import { OtpEmailProvider } from "./providers/otp-email-provider";
 import { GoogleWelcomeEmailProvider } from "./providers/google-email-provider";
@@ -6,6 +6,8 @@ import { KAFKA_SERVICE } from "@app/kafka";
 import { ClientKafka } from "@nestjs/microservices";
 import { UserRegisteredProvider } from "./providers/user-registered-email-provider";
 import { ResetPasswordProvider } from "./providers/reset-password-provider";
+import { PaymentInitiatedEmailProvider } from "./providers/payment-initiated-provider";
+import { PaymentConfirmedEmailProvider } from "./providers/payment-confirmed-provider";
 
 @Injectable()
 export class NotificationService implements OnModuleInit {
@@ -15,6 +17,8 @@ export class NotificationService implements OnModuleInit {
     private readonly userRegistered: UserRegisteredProvider,
     private readonly resetPasswordProvider: ResetPasswordProvider,
     private readonly verifyEmailOtpProvider: VerifyEmailOtpProvider,
+    private readonly paymentInitiatedEmailProvider: PaymentInitiatedEmailProvider,
+    private readonly paymentConfirmedEmailProvider: PaymentConfirmedEmailProvider,
     @Inject(KAFKA_SERVICE)
     private readonly kafkaClient: ClientKafka
   ) {}
@@ -45,10 +49,31 @@ export class NotificationService implements OnModuleInit {
     await this.resetPasswordProvider.sendEmail(data);
   }
 
-  async verifyEmailOtp(data: { name: string; email: string; otp: string}) {
-    await this.verifyEmailOtpProvider.sendEmail(data)
+  async verifyEmailOtp(data: { name: string; email: string; otp: string }) {
+    await this.verifyEmailOtpProvider.sendEmail(data);
   }
   getHello() {
     return "hello";
+  }
+
+  // notification-service service
+  async sendPaymentInitiatedEmail(payload: {
+    email: string;
+
+    orderId: string;
+    reference: string;
+    authorizationUrl: string;
+  }) {
+    await this.paymentInitiatedEmailProvider.sendEmail(payload);
+  }
+
+  async sendPaymentConfirmedEmail(payload: {
+    email: string;
+
+    orderId: string;
+    reference: string;
+    amount: number;
+  }) {
+    await this.paymentConfirmedEmailProvider.sendEmail(payload);
   }
 }
