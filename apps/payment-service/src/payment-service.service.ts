@@ -59,7 +59,7 @@ export class PaymentService implements OnModuleInit {
     try {
       const paystackData = await this.paystackService.initializeTransaction({
         amount: totalAmount,
-        email:buyerEmail,
+        email: buyerEmail,
         reference,
         metadata: {
           orderId,
@@ -93,6 +93,7 @@ export class PaymentService implements OnModuleInit {
           amount: Math.round(totalAmount * 100),
           buyerEmail,
           reference,
+          auth_url: paystackData.authorization_url,
         })}`
       );
       this.logger.log(

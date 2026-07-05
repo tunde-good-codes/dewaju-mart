@@ -10,10 +10,10 @@ export class PaymentConfirmedEmailProvider {
   constructor(private readonly mailService: MailerService) {}
 
   async sendEmail(data: {
-    email: string;
     orderId: string;
     reference: string;
     amount: number;
+    buyerEmail: string;
   }) {
     const templateDir = (this.mailService as any).options?.template?.dir;
     this.logger.log("Mailer template dir:", templateDir);
@@ -28,7 +28,7 @@ export class PaymentConfirmedEmailProvider {
     );
     try {
       await this.mailService.sendMail({
-        to: data.email,
+        to: data.buyerEmail,
         template: "payment-confirmed",
         subject: "Payment confirmed",
         context: {
@@ -37,10 +37,12 @@ export class PaymentConfirmedEmailProvider {
           amount: data.amount,
         },
       });
-      this.logger.log(`payment confirmation mail dispatched flawlessly to ${data.email}`);
+      this.logger.log(
+        `payment confirmation mail dispatched flawlessly to ${data.buyerEmail}`
+      );
     } catch (error) {
       this.logger.error(
-        `Failed to send payment initialization to ${data.email}: ${error.message}`
+        `Failed to send payment initialization to ${data.buyerEmail}: ${error.message}`
       );
     }
   }

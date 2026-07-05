@@ -1,4 +1,4 @@
-import { KAFKA_BROKER } from './../../../libs/kafka/src/kafka.topics';
+import { KAFKA_BROKER } from "./../../../libs/kafka/src/kafka.topics";
 import { NestFactory } from "@nestjs/core";
 import { PaymentServiceModule } from "./payment-service.module";
 import { Logger } from "@nestjs/common";
@@ -12,13 +12,17 @@ async function bootstrap() {
   const logger = new Logger();
 
   const app = await NestFactory.create(PaymentServiceModule, {
-    rawBody:true
+    rawBody: true,
   });
   app.connectMicroservice({
     transport: Transport.KAFKA,
     options: {
       client: {
         brokers: [process.env.KAFKA_BROKER],
+      },
+      retry: {
+        retries: 5, 
+        initialRetryTime: 300
       },
       consumer: {
         groupId: "payment-service-group",
@@ -30,10 +34,10 @@ async function bootstrap() {
   app.enableShutdownHooks();
   configureGlobalSettings(app, {
     serviceName: "payment-service",
-    prefix: "api/v1/payment",
+    prefix: "api/v1/payments",
   });
   await app.listen(SERVICES_PORT.PAYMENT_SERVICE);
 
-  logger.log("payment service running and connected on port:3006")
+  logger.log("payment service running and connected on port:3006");
 }
 bootstrap();

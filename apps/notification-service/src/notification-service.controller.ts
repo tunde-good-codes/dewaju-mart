@@ -40,8 +40,19 @@ export class NotificationServiceController {
   async verifyEmailOtp(
     @Payload() data: { name: string; email: string; otp: string }
   ) {
-
-    return await this.notificationService.verifyEmailOtp(data)
+    return await this.notificationService.verifyEmailOtp(data);
+  }
+  @EventPattern(KAFKA_TOPICS.PAYMENT_CONFIRMED)
+  async paymentVerifiedAndConfirmed(
+    @Payload()
+    data: {
+      orderId: string;
+      reference: string;
+      amount: number;
+      buyerEmail: string;
+    }
+  ) {
+    return await this.notificationService.sendPaymentConfirmedEmail(data);
   }
 
   @Get()

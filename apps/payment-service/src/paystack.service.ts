@@ -1,6 +1,5 @@
 import { HttpService } from "@nestjs/axios";
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
   Logger,

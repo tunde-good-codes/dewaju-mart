@@ -68,11 +68,10 @@ export class NotificationService implements OnModuleInit {
   }
 
   async sendPaymentConfirmedEmail(payload: {
-    email: string;
-
     orderId: string;
     reference: string;
     amount: number;
+    buyerEmail: string;
   }) {
     await this.paymentConfirmedEmailProvider.sendEmail(payload);
   }
