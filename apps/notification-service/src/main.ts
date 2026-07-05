@@ -4,12 +4,14 @@ import { Logger } from "@nestjs/common";
 import { configureGlobalSettings } from "libs/bootstrap.util";
 import { SERVICES_PORT } from "libs/shared/constants/services.constant";
 import { Transport } from "@nestjs/microservices";
+import { IoAdapter } from "@nestjs/platform-socket.io"; 
 
 async function bootstrap() {
   process.title = "notification server";
   const logger = new Logger("notification server running");
   const app = await NestFactory.create(NotificationServiceModule);
   app.enableShutdownHooks();
+  app.useWebSocketAdapter(new IoAdapter(app));
 
   app.connectMicroservice({
     transport: Transport.KAFKA,
@@ -22,6 +24,8 @@ async function bootstrap() {
       },
     },
   });
+
+
     app.startAllMicroservices();
 
   configureGlobalSettings(app, {

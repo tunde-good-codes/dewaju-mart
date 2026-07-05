@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sokomart WS Test</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #0f172a; color: #e2e8f0; }
+    .event { padding: 8px 12px; margin: 6px 0; border-radius: 6px; }
+    .green { background: #14532d; color: #86efac; }
+    .blue { background: #1e3a5f; color: #93c5fd; }
+    .red { background: #450a0a; color: #fca5a5; }
+    .orange { background: #431407; color: #fdba74; }
+  </style>
+</head>
+<body>
+  <h2>🛒 Sokomart WebSocket Tester</h2>
+  <p>Status: <span id="status" style="color: #fbbf24">Connecting...</span></p>
+  <div id="log"></div>
+
+  <script>
+    const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlMmFlNGM2OS01MTNjLTQwMmEtYTM1Yy1iNGM2Yzc1Y2Q3NDkiLCJlbWFpbCI6ImZhZGlwZTExQGdtYWlsLmNvbSIsInJvbGUiOiJhZG1pbiIsInRva2VuVmVyc2lvbiI6IjEiLCJpYXQiOjE3ODMyNjk4NjYsImV4cCI6MTc4MzI3ODg2Nn0.qhRWxUQ5MlkFEW8OptqGB25YmsYJWlvDGuLXReH_ZGI";
+
+    const socket = io("http://localhost:3002/notifications", {
+      auth: { token: TOKEN }
+    });
+
+    const log = (msg, cls = "") => {
+      const div = document.createElement("div");
+      div.className = `event ${cls}`;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      document.getElementById("log").prepend(div);
+    };
+
+    socket.on("connect", () => {
+      document.getElementById("status").textContent = "Connected ✅";
+      document.getElementById("status").style.color = "#86efac";
+      log("Connected to Sokomart notifications", "green");
+    });
+
+    socket.on("connect_error", (err) => {
+      log(`Connection error: ${err.message}`, "red");
+    });
+
+    socket.on("order:created", (data) => {
+      log(`📦 ORDER CREATED — ${JSON.stringify(data)}`, "blue");
+    });
+
+    socket.on("payment:confirmed", (data) => {
+      log(`💳 PAYMENT CONFIRMED — ${JSON.stringify(data)}`, "green");
+    });
+
+    socket.on("payment:failed", (data) => {
+      log(`❌ PAYMENT FAILED — ${JSON.stringify(data)}`, "red");
+    });
+
+    socket.on("order:cancelled", (data) => {
+      log(`🚫 ORDER CANCELLED — ${JSON.stringify(data)}`, "orange");
+    });
+
+    socket.on("disconnect", () => {
+      document.getElementById("status").textContent = "Disconnected";
+      document.getElementById("status").style.color = "#94a3b8";
+      log("Disconnected", "");
+    });
+  </script>
+</body>
+</html>

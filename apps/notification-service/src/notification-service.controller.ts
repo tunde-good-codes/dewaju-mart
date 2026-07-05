@@ -50,9 +50,23 @@ export class NotificationServiceController {
       reference: string;
       amount: number;
       buyerEmail: string;
+      buyerId: string;
     }
   ) {
     return await this.notificationService.sendPaymentConfirmedEmail(data);
+  }
+  @EventPattern(KAFKA_TOPICS.PAYMENT_INITIATED)
+  async paymentInitiated(
+    @Payload()
+    data: {
+      buyerEmail: string;
+      buyerId: string;
+      orderId: string;
+      reference: string;
+      authorizationUrl: string;
+    }
+  ) {
+    return await this.notificationService.sendPaymentInitiatedEmail(data);
   }
 
   @Get()

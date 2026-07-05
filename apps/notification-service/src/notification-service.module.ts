@@ -13,6 +13,10 @@ import { ResetPasswordProvider } from "./providers/reset-password-provider";
 import { VerifyEmailOtpProvider } from "./providers/verify-email-otp";
 import { PaymentInitiatedEmailProvider } from "./providers/payment-initiated-provider";
 import { PaymentConfirmedEmailProvider } from "./providers/payment-confirmed-provider";
+import { OrderCreatedEmailProvider } from "./providers/order-created-provider";
+import { NotificationProvider } from "./providers/notification-provider";
+import { JwtModule } from "@nestjs/jwt";
+import { PassportModule } from "@nestjs/passport";
 
 @Module({
   imports: [
@@ -58,6 +62,19 @@ import { PaymentConfirmedEmailProvider } from "./providers/payment-confirmed-pro
       },
     }),
 
+    PassportModule.register({
+      defaultStrategy: "jwt",
+    }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.getOrThrow<string>("JWT_SECRET"),
+        signOptions: {
+          expiresIn: configService.getOrThrow<number>("JWT_EXPIRES_IN"),
+        },
+      }),
+    }),
     KafkaModule.register("notification-service-group"),
   ],
   controllers: [NotificationServiceController],
@@ -70,6 +87,8 @@ import { PaymentConfirmedEmailProvider } from "./providers/payment-confirmed-pro
     VerifyEmailOtpProvider,
     PaymentInitiatedEmailProvider,
     PaymentConfirmedEmailProvider,
+    OrderCreatedEmailProvider,
+    NotificationProvider,
   ],
 })
 export class NotificationServiceModule {}

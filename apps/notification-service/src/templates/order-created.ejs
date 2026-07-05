@@ -166,20 +166,15 @@
           <p class="label">Order ID</p>
           <p class="value"><%= orderId %></p>
         </div>
-
-            <div class="row">
-          <p class="label">Buyer ID</p>
-          <p class="value"><%= buyerId %></p>
-        </div>
         <div class="row">
           <p class="label">Payment Reference</p>
-          <p class="value"><%= reference %></p>
+          <p class="value"><%= totalAmount %></p>
         </div>
       </div>
 
       <!-- CTA Button -->
       <div class="cta-wrapper">
-        <a href="<%= authorizationUrl %>" class="cta-btn">
+        <a href="<%= buyerId %>" class="cta-btn">
           Complete Payment →
         </a>
       </div>

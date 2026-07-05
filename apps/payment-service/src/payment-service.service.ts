@@ -193,6 +193,7 @@ export class PaymentService implements OnModuleInit {
         reference,
         amount: payment.amount,
         buyerEmail: payment.buyerEmail,
+        buyerId: payment.buyerId,
       });
 
       this.logger.log(`Payment confirmed for order: ${payment.orderId}`);

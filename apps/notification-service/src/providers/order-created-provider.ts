@@ -4,18 +4,19 @@ import * as fs from "fs";
 import * as path from "path";
 
 @Injectable()
-export class PaymentConfirmedEmailProvider {
-  private readonly logger = new Logger("payment confirmed mail");
+export class OrderCreatedEmailProvider {
+  private readonly logger = new Logger("payment initiated mail");
 
   constructor(private readonly mailService: MailerService) {}
 
   async sendEmail(data: {
+    
+    
     orderId: string;
-    reference: string;
-    amount: number;
-    buyerEmail: string;
 
+    buyerEmail: string;
     buyerId: string;
+    totalAmount: string;
   }) {
     const templateDir = (this.mailService as any).options?.template?.dir;
     this.logger.log("Mailer template dir:", templateDir);
@@ -31,18 +32,15 @@ export class PaymentConfirmedEmailProvider {
     try {
       await this.mailService.sendMail({
         to: data.buyerEmail,
-        template: "payment-confirmed",
-        subject: "Payment confirmed",
+        template: "order-created",
+        subject: "Order Created",
         context: {
           orderId: data.orderId,
+          totalAmount: data.totalAmount,
           buyerId: data.buyerId,
-          reference: data.reference,
-          amount: data.amount,
         },
       });
-      this.logger.log(
-        `payment confirmation mail dispatched flawlessly to ${data.buyerEmail}`
-      );
+      this.logger.log(`payment initialization mail dispatched flawlessly to ${data.buyerEmail}`);
     } catch (error) {
       this.logger.error(
         `Failed to send payment initialization to ${data.buyerEmail}: ${error.message}`

@@ -1,3 +1,4 @@
+import { NotificationProvider } from "./providers/notification-provider";
 import { VerifyEmailOtpProvider } from "./providers/verify-email-otp";
 import { Inject, Injectable, OnModuleInit } from "@nestjs/common";
 import { OtpEmailProvider } from "./providers/otp-email-provider";
@@ -8,6 +9,7 @@ import { UserRegisteredProvider } from "./providers/user-registered-email-provid
 import { ResetPasswordProvider } from "./providers/reset-password-provider";
 import { PaymentInitiatedEmailProvider } from "./providers/payment-initiated-provider";
 import { PaymentConfirmedEmailProvider } from "./providers/payment-confirmed-provider";
+import { OrderCreatedEmailProvider } from "./providers/order-created-provider";
 
 @Injectable()
 export class NotificationService implements OnModuleInit {
@@ -19,6 +21,8 @@ export class NotificationService implements OnModuleInit {
     private readonly verifyEmailOtpProvider: VerifyEmailOtpProvider,
     private readonly paymentInitiatedEmailProvider: PaymentInitiatedEmailProvider,
     private readonly paymentConfirmedEmailProvider: PaymentConfirmedEmailProvider,
+    private readonly gateway: NotificationProvider,
+    private readonly orderCreatedEmailProvider: OrderCreatedEmailProvider,
     @Inject(KAFKA_SERVICE)
     private readonly kafkaClient: ClientKafka
   ) {}
@@ -56,15 +60,28 @@ export class NotificationService implements OnModuleInit {
     return "hello";
   }
 
-  // notification-service service
   async sendPaymentInitiatedEmail(payload: {
-    email: string;
-
     orderId: string;
     reference: string;
     authorizationUrl: string;
+    
+    buyerEmail: string;
+    buyerId: string;
   }) {
     await this.paymentInitiatedEmailProvider.sendEmail(payload);
+  }
+  async sendOrderCreatedEmail(payload: {
+    orderId: string;
+    buyerEmail: string;
+    buyerId: string;
+    totalAmount: string;
+  }) {
+    await this.orderCreatedEmailProvider.sendEmail(payload);
+    this.gateway.sendToUser(payload.buyerId, "order:created", {
+      message: "Your order has been placed successfully.",
+      orderId: payload.orderId,
+      totalAmount: payload.totalAmount,
+    });
   }
 
   async sendPaymentConfirmedEmail(payload: {
@@ -72,7 +89,14 @@ export class NotificationService implements OnModuleInit {
     reference: string;
     amount: number;
     buyerEmail: string;
+    buyerId: string;
   }) {
     await this.paymentConfirmedEmailProvider.sendEmail(payload);
+
+    this.gateway.sendToUser(payload.buyerId, "payment:confirmed", {
+      message: "Your payment was successful. Order is being processed.",
+      orderId: payload.orderId,
+      amount: payload.amount,
+    });
   }
 }
