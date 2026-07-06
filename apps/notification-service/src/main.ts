@@ -32,6 +32,8 @@ async function bootstrap() {
     serviceName: "notification server",
     prefix: "api/v1/notification",
   });
+
+  
   await app.listen(SERVICES_PORT.NOTIFICATION_SERVICE ?? 3002);
   logger.log(
     `notification server running on port: ${SERVICES_PORT.NOTIFICATION_SERVICE} `

@@ -1,8 +1,7 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { Reflector } from '@nestjs/core';
+import { INestApplication, ValidationPipe } from "@nestjs/common";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { Reflector } from "@nestjs/core";
 import { ResponseInterceptor } from "./interceptor/response.interceptor";
-
 
 interface BootstrapOptions {
   serviceName: string;
@@ -12,9 +11,9 @@ interface BootstrapOptions {
 
 export function configureGlobalSettings(
   app: INestApplication,
-  options: BootstrapOptions,
+  options: BootstrapOptions
 ) {
-  const prefix = options.prefix ?? 'api/v1';
+  const prefix = options.prefix ?? "api/v1";
 
   app.setGlobalPrefix(prefix);
 
@@ -23,20 +22,19 @@ export function configureGlobalSettings(
       whitelist: true,
       transform: true,
       forbidNonWhitelisted: true,
-    }),
+    })
   );
 
   const reflector = app.get(Reflector);
   app.useGlobalInterceptors(new ResponseInterceptor(reflector));
 
-  // 4. Swagger
-  const config = new DocumentBuilder()
-    .setTitle(`${options.serviceName} API`)
-    .setDescription(`The API documentation for ${options.serviceName}`)
-    .setVersion(options.version ?? '1.0')
-    .addBearerAuth()
-    .build();
+  // const config = new DocumentBuilder()
+  //   .setTitle(`${options.serviceName} API`)
+  //   .setDescription(`The API documentation for ${options.serviceName}`)
+  //   .setVersion(options.version ?? "1.0")
+  //   .addBearerAuth()
+  //   .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup(`${prefix}/docs`, app, document);
+  // const document = SwaggerModule.createDocument(app, config);
+  // SwaggerModule.setup("docs", app, document);
 }

@@ -25,11 +25,21 @@ import { memoryStorage } from "multer";
 import { CreateProductDto } from "apps/product-service/src/dtos/create-product-dto";
 import { ProductQueryDto } from "apps/product-service/src/dtos/product-query.dto";
 import { UpdateProductDto } from "apps/product-service/src/dtos/update-product-dto";
+import { ApiTags } from "@nestjs/swagger";
+import {
+  ApiCreate,
+  ApiGetOne,
+  ApiProtectedDelete,
+  ApiProtectedGetAll,
+  ApiProtectedUpdate,
+} from "libs/decorator/swagger.decorator";
 
+@ApiTags("product- service")
 @Controller("products")
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
+  @ApiCreate("a new product category created", CreateProductCategoryDto)
   @Post("category")
   @UseInterceptors(
     FileInterceptor("image", {
@@ -65,6 +75,7 @@ export class ProductController {
     );
   }
 
+  @ApiProtectedGetAll("all product categories fetched")
   @Get("category")
   async getAllCategories(@Headers("authorization") token: string) {
     const formattedToken = token.startsWith("Bearer ")
@@ -72,11 +83,13 @@ export class ProductController {
       : `Bearer ${token}`;
     return await this.productService.getAllCategories(formattedToken);
   }
-
+  @ApiProtectedGetAll("all product categories fetched")
   @Get("categories")
   async getProductsCategory(@Query() query: ProductQueryDto) {
     return await this.productService.getProductsCategory(query);
   }
+
+  @ApiCreate("a new product created", CreateProductDto)
   @Post()
   @UseInterceptors(
     FilesInterceptor("files", 4, {
@@ -105,6 +118,7 @@ export class ProductController {
     return await this.productService.createProduct(formattedToken, files, dto);
   }
 
+  @ApiProtectedDelete("product deleted")
   @Delete(":id")
   async deleteProduct(
     @Param("id") id: string,
@@ -116,6 +130,7 @@ export class ProductController {
     return await this.productService.deleteProduct(id, formattedToken);
   }
 
+  @ApiProtectedGetAll("all product fetched")
   @Get()
   async getProducts(
     @Query() query: ProductQueryDto,
@@ -128,6 +143,8 @@ export class ProductController {
       : null;
     return await this.productService.getAllProduct(query, formattedToken);
   }
+
+  @ApiProtectedGetAll("all my product fetched")
   @Get("my-products")
   async getMyProducts(
     @Query() query: ProductQueryDto,
@@ -139,11 +156,13 @@ export class ProductController {
     return await this.productService.getMyProducts(query, formattedToken);
   }
 
+  @ApiGetOne("a single product fetched")
   @Get(":id")
   async singleProduct(@Param("id") id: string) {
     return await this.productService.getSingleProduct(id);
   }
 
+  @ApiProtectedUpdate("product updated", UpdateProductDto)
   @Patch(":id")
   @UseInterceptors(
     FilesInterceptor("files", 4, {
