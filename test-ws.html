@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Sokomart WS Test</title>
+  <title>Dewaju WS Test</title>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <style>
     body { font-family: monospace; padding: 20px; background: #0f172a; color: #e2e8f0; }
@@ -13,7 +13,7 @@
   </style>
 </head>
 <body>
-  <h2>🛒 Sokomart WebSocket Tester</h2>
+  <h2>🛒 Dewaju WebSocket Tester</h2>
   <p>Status: <span id="status" style="color: #fbbf24">Connecting...</span></p>
   <div id="log"></div>
 
@@ -34,7 +34,7 @@
     socket.on("connect", () => {
       document.getElementById("status").textContent = "Connected ✅";
       document.getElementById("status").style.color = "#86efac";
-      log("Connected to Sokomart notifications", "green");
+      log("Connected to Dewaju notifications", "green");
     });
 
     socket.on("connect_error", (err) => {

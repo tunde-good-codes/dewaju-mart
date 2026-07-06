@@ -29,15 +29,26 @@ import { ApiTags } from "@nestjs/swagger";
 import {
   ApiCreate,
   ApiGetOne,
+  ApiGetService,
   ApiProtectedDelete,
   ApiProtectedGetAll,
   ApiProtectedUpdate,
 } from "libs/decorator/swagger.decorator";
 
-@ApiTags("product- service")
+@ApiTags("product Service")
 @Controller("products")
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
+
+  @ApiGetService("this service is alive and active")
+  @Get("health")
+  health() {
+    return {
+      status: "ok",
+      service: "order-service",
+      timestamp: new Date().toISOString(),
+    };
+  }
 
   @ApiCreate("a new product category created", CreateProductCategoryDto)
   @Post("category")

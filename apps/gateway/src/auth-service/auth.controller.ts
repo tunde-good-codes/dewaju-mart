@@ -44,7 +44,7 @@ import {
   ApiVerify,
 } from "libs/decorator/swagger.decorator";
 
-@ApiTags("Authentication")
+@ApiTags("Authentication Service")
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -61,6 +61,15 @@ export class AuthController {
     return await this.authService.verifyRegisterUser(dto);
   }
 
+  @ApiGetService("this service is alive and active")
+  @Get("health")
+  health() {
+    return {
+      status: "ok",
+      service: "order-service",
+      timestamp: new Date().toISOString(),
+    };
+  }
   @ApiGetService("Redirecting to Google OAuth")
   @Get("google")
   async getGoogleUserRegistration(@Res() res: Response) {
@@ -128,7 +137,6 @@ export class AuthController {
     return this.authService.logout(formattedToken);
   }
   @ApiProtectedGetService("Logout  all devices")
-
   @Post("logout-all")
   async logoutAll(@Headers("authorization") token: string) {
     const formattedToken = token.startsWith("Bearer ")
@@ -149,7 +157,6 @@ export class AuthController {
     return this.authService.resendOtp(dto);
   }
   @ApiProtectedUpdate("Update user profile", UpdateUserDto)
-
   @Patch("me")
   async updateUserData(
     @Headers("authorization") token: string,
@@ -159,7 +166,6 @@ export class AuthController {
     return await this.authService.updateUserData(formatToken, dto);
   }
   @ApiProtectedFileUpload("Update user profile image")
-
   @Post("me/image")
   @UseInterceptors(
     FileInterceptor("file", {

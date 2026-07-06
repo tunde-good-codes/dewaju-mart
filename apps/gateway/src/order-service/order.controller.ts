@@ -1,4 +1,4 @@
-import { ApiProtectedDelete, ApiProtectedGetService } from "./../../../../libs/decorator/swagger.decorator";
+import { ApiGetService, ApiProtectedDelete, ApiProtectedGetService } from "./../../../../libs/decorator/swagger.decorator";
 import {
   Body,
   Controller,
@@ -18,12 +18,24 @@ import {
   ApiProtectedGetAll,
   ApiProtectedGetOne,
 } from "libs/decorator/swagger.decorator";
-@ApiTags("Order-service")
+@ApiTags("Order Service")
 @Controller("order")
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
   private readonly logger = new Logger("gateway:order");
 
+
+
+  
+    @ApiGetService("this service is alive and active")
+    @Get("health")
+    health() {
+      return {
+        status: "ok",
+        service: "order-service",
+        timestamp: new Date().toISOString(),
+      };
+    }
   @ApiCreate("Create a new order", CreateOrderDto)
   @Post()
   async createOrder(
