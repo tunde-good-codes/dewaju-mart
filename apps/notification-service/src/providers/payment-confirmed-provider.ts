@@ -8,27 +8,17 @@ export class PaymentConfirmedEmailProvider {
   private readonly logger = new Logger("payment confirmed mail");
 
   constructor(private readonly mailService: MailerService) {}
-
   async sendEmail(data: {
     orderId: string;
     reference: string;
     amount: number;
     buyerEmail: string;
-
     buyerId: string;
   }) {
-    const templateDir = (this.mailService as any).options?.template?.dir;
-    this.logger.log("Mailer template dir:", templateDir);
-
-    this.logger.log(
-      "Current Host Process Configured:",
-      this.mailService["options"]?.transport?.host
-    );
-    this.logger.log(
-      "Current Port Process Configured:",
-      this.mailService["options"]?.transport?.port
-    );
     try {
+      this.logger.log(`Attempting to send to: ${data.buyerEmail}`);
+      this.logger.log(`Template: payment-confirmed`);
+
       await this.mailService.sendMail({
         to: data.buyerEmail,
         template: "payment-confirmed",
@@ -40,13 +30,15 @@ export class PaymentConfirmedEmailProvider {
           amount: data.amount,
         },
       });
+
       this.logger.log(
-        `payment confirmation mail dispatched flawlessly to ${data.buyerEmail}`
+        `payment confirmation mail dispatched to ${data.buyerEmail}`
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to send payment initialization to ${data.buyerEmail}: ${error.message}`
-      );
+      // ✅ Log the full error
+      this.logger.error(`Full error: ${JSON.stringify(error)}`);
+      this.logger.error(`Error message: ${error.message}`);
+      this.logger.error(`Error stack: ${error.stack}`);
     }
   }
 }

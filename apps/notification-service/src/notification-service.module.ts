@@ -17,6 +17,7 @@ import { OrderCreatedEmailProvider } from "./providers/order-created-provider";
 import { NotificationProvider } from "./providers/notification-provider";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
+import { PaymentFailedEmailProvider } from "./providers/payment-failed-email.provider";
 
 @Module({
   imports: [
@@ -89,6 +90,7 @@ import { PassportModule } from "@nestjs/passport";
     PaymentConfirmedEmailProvider,
     OrderCreatedEmailProvider,
     NotificationProvider,
+    PaymentFailedEmailProvider,
   ],
 })
 export class NotificationServiceModule {}

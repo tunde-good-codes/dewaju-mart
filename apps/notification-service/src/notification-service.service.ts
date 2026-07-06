@@ -10,6 +10,7 @@ import { ResetPasswordProvider } from "./providers/reset-password-provider";
 import { PaymentInitiatedEmailProvider } from "./providers/payment-initiated-provider";
 import { PaymentConfirmedEmailProvider } from "./providers/payment-confirmed-provider";
 import { OrderCreatedEmailProvider } from "./providers/order-created-provider";
+import { PaymentFailedEmailProvider } from "./providers/payment-failed-email.provider";
 
 @Injectable()
 export class NotificationService implements OnModuleInit {
@@ -23,6 +24,7 @@ export class NotificationService implements OnModuleInit {
     private readonly paymentConfirmedEmailProvider: PaymentConfirmedEmailProvider,
     private readonly gateway: NotificationProvider,
     private readonly orderCreatedEmailProvider: OrderCreatedEmailProvider,
+    private readonly paymentFailedEmailProvider: PaymentFailedEmailProvider,
     @Inject(KAFKA_SERVICE)
     private readonly kafkaClient: ClientKafka
   ) {}
@@ -64,7 +66,7 @@ export class NotificationService implements OnModuleInit {
     orderId: string;
     reference: string;
     authorizationUrl: string;
-    
+
     buyerEmail: string;
     buyerId: string;
   }) {
@@ -74,7 +76,7 @@ export class NotificationService implements OnModuleInit {
     orderId: string;
     buyerEmail: string;
     buyerId: string;
-    totalAmount: string;
+    totalAmount: number;
   }) {
     await this.orderCreatedEmailProvider.sendEmail(payload);
     this.gateway.sendToUser(payload.buyerId, "order:created", {
@@ -97,6 +99,18 @@ export class NotificationService implements OnModuleInit {
       message: "Your payment was successful. Order is being processed.",
       orderId: payload.orderId,
       amount: payload.amount,
+    });
+  }
+  async sendPaymentFailedEmail(payload: {
+    orderId: string;
+    buyerEmail: string;
+    buyerId: string;
+  }) {
+    this.paymentFailedEmailProvider.sendEmail(payload);
+
+    this.gateway.sendToUser(payload.buyerId, "payment:failed", {
+      message: "Your payment failed. Please try again.",
+      orderId: payload.orderId,
     });
   }
 }

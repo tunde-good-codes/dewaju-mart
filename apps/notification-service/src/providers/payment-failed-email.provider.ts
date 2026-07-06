@@ -1,22 +1,16 @@
 import { MailerService } from "@nestjs-modules/mailer";
 import { Injectable, Logger } from "@nestjs/common";
-import * as fs from "fs";
-import * as path from "path";
 
 @Injectable()
-export class OrderCreatedEmailProvider {
-  private readonly logger = new Logger("payment initiated mail");
+export class PaymentFailedEmailProvider {
+  private readonly logger = new Logger("payment failed mail");
 
   constructor(private readonly mailService: MailerService) {}
 
   async sendEmail(data: {
-    
-    
     orderId: string;
-
     buyerEmail: string;
     buyerId: string;
-    totalAmount: number;
   }) {
     const templateDir = (this.mailService as any).options?.template?.dir;
     this.logger.log("Mailer template dir:", templateDir);
@@ -32,15 +26,16 @@ export class OrderCreatedEmailProvider {
     try {
       await this.mailService.sendMail({
         to: data.buyerEmail,
-        template: "order-created",
-        subject: "Order Created",
+        template: "payment-failed",
+        subject: "Payment failed",
         context: {
           orderId: data.orderId,
-          totalAmount: data.totalAmount,
           buyerId: data.buyerId,
         },
       });
-      this.logger.log(`payment initialization mail dispatched flawlessly to ${data.buyerEmail}`);
+      this.logger.log(
+        `payment initialization mail dispatched flawlessly to ${data.buyerEmail}`
+      );
     } catch (error) {
       this.logger.error(
         `Failed to send payment initialization to ${data.buyerEmail}: ${error.message}`
